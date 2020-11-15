@@ -1,0 +1,5 @@
+.env
+app/logs/*
+app/media/*
+*.sqlite3
+**/__pycache__

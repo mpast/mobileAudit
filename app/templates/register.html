@@ -1,0 +1,25 @@
+{% extends 'base.html' %} {% load widget_tweaks %} {% load fontawesome_5 %} {% block content %}
+<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button>
+<form method="post">
+    {% csrf_token %} {% for field in form.visible_fields %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label> {% render_field field class="form-control" placeholder=field.label %} {% for error in field.errors %}
+        <div class="alert alert-danger">
+            <strong>{{ error | escape }}</strong>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-success">Sign Up</button>
+</form>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <div class="alert alert-success">
+        <strong>{{ message | escape }}</strong>
+    </div>
+    {% endfor %}
+</ul>
+{% endif %}
+</form>
+{% endblock %}
