@@ -1,0 +1,56 @@
+{% extends 'base.html' %} {% block content %} {% load fontawesome_5 %}
+<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button>
+<table class="table table-striped table-bordered">
+    <tr>
+        <th>ID</th>
+        <td> {{ finding.id }} </td>
+    </tr>
+    <tr>
+        <th>Status</th>
+        <td>{{ finding.get_status_display }}</td>
+    </tr>
+    <tr>
+        <th>Severity</th>
+        <td>{{ finding.get_severity_display }} </td>
+    </tr>
+    <tr>
+        <th>CWE</th>
+        <td><a href="{{ settings.CWE_URL }}{{finding.cwe.cwe}}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+    </tr>
+    <tr>
+        <th>Finding</th>
+        <td>{{ finding.name }}</td>
+    </tr>
+    <tr>
+        <th>Description</th>
+        <td>{{ finding.description }}</td>
+    </tr>
+    <tr>
+        <th>Created by</th>
+        <td>{{ finding.user.username }} </td>
+    </tr>
+    <tr>
+        <th>File</th>
+        <td><a href="{% url 'finding_view_file' id=finding.id %}">{{ finding.path }}</a></td>
+    </tr>
+    <tr>
+        <th>Line Number</th>
+        <td><a href="{% url 'finding_view_file' id=finding.id %}#finding">{{ finding.line_number }}</a></td>
+    </tr>
+    <tr>
+        <th>Line</th>
+        <td>{{ finding.line }}</td>
+    </tr>
+    <tr>
+        <th>Snippet</th>
+        <td>{{ finding.snippet | linebreaks }} </td>
+    </tr>
+    <tr>
+        <th>Mitigation</th>
+        <td>{{ finding.mitigation }} </td>
+    </tr>
+</table>
+{% if settings.DEFECTDOJO_ENABLED and finding.defectdojo_id > 0 %}
+<a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank" class="btn btn-outline-dark">DefectDojo{% fa5_icon 'external-link-alt' %}</a> {% endif %}
+
+<a class="btn btn-outline-danger" href="{% url 'edit_finding' id=finding.id %}">Edit</a> {% endblock %}

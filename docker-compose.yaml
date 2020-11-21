@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:13@sha256:8f7c3c9b61d82a4a021da5d9618faf056633e089302a726d619fa467c73609e4
+    env_file:
+      - ./.env.example
+    environment:
+      POSTGRES_DB: ${SQL_DATABASE:-audit}
+      POSTGRES_USER: ${SQL_USER:-postgres}
+      POSTGRES_PASSWORD: ${SQL_PASSWORD:-postgres}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - ${SQL_PORT:-5432}
+  web:
+    build: 
+      context: ./
+    env_file:
+      - ./.env.example
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py loaddata data && uwsgi --http 0.0.0.0:8000 --enable-threads --processes 2 --threads 1 --module app.config.wsgi"
+    volumes:
+      - .:/app
+    expose:
+      - "8000"
+    depends_on:
+      - db
+  nginx:
+    image: nginx:1.18.0@sha256:6e4fc428f9f25f1914e43dc2e75ff3be574141734509111282a3a050a420d94c
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app
+      - ./nginx/app.conf:/etc/nginx/conf.d/app.conf
+    depends_on:
+      - web
+volumes:
+  db-data:

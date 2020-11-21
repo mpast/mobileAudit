@@ -1,0 +1,21 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<link rel="stylesheet" type="text/css" href="{% static 'pygment.css' %}">
+<style>
+    pre,
+    span,
+    div {
+        display: inline;
+    }
+    
+    span {
+        width: 15px;
+        margin-right: 5px;
+    }
+</style>
+<br>{% if lines %} {% for line in lines %} {% if finding == forloop.counter %}
+
+<a name="finding">
+    <b>
+          <span class="line"> {{ forloop.counter }} |</span> {{ line | safe }}
+        </b></a> {% else %}
+<span class="line"> {{ forloop.counter }} |</span> {{ line | safe }} {% endif %} {% endfor %} {% else %} <span style="color:red">The file cannot be found</span> {% endif %} {% endblock %}

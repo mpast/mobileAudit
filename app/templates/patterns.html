@@ -1,0 +1,78 @@
+{% extends 'base.html' %} {% load fontawesome_5 %} {% block content %}
+<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button> {% if not patterns %}
+<br>
+<form action="{% url 'patterns' %}" method="post" enctype="multipart/form-data">
+    <div class="btn-group mr-2">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            Bulk Edit
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenu" id="bulk_edit">
+            <li style="margin: 15px;">
+                <label style="display: block" for="status">Status</label>
+                <select name="status" id="status">
+                        <option value="">Choose Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                <input type="submit" name="edit_patterns" class="btn btn-sm btn-primary" value="Edit Patterns">
+            </li>
+        </ul>
+    </div>
+    {% csrf_token %}
+    <table id="patterns" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th style="width: 2%;"><input id="id_select_all" name="select_all" type="checkbox" /></th>
+                <th style="width: 6%;">ID</th>
+                <th style="width: 10%;">Pattern</th>
+                <th style="width: 30%;">Description</th>
+                <th style="width: 30%;">Mitigation</th>
+                <th style="width: 6%;">Severity</th>
+                <th style="width: 6%;">Active</th>
+                <th style="width: 6%;">Status</th>
+                <th style="width: 7%;">CWE</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pattern in patterns %}
+            <tr>
+                <td><input id="{{ pattern.id }}" class="pattern" name="{{ pattern.id }}" type="checkbox" /></td>
+                <td><a href="">{{ pattern.id }}</a></td>
+                <td>{{ pattern.default_name }}</td>
+                <td>{{ pattern.default_description }}</td>
+                <td>{{ pattern.default_mitigation }}</td>
+                <td>{{ pattern.get_default_severity_display }}</td>
+                {% if pattern.active %}
+                <td>Yes</td>
+                <td>{% fa5_icon 'check-circle' color='green' %}</td>
+                {% else %}
+                <td>No</td>
+                <td>{% fa5_icon 'exclamation-circle' color='red' %}</td>
+                {% endif %}
+                <td><a href="https://cwe.mitre.org/data/definitions/{{finding.cwe.cwe}}.html" target="_blank">{{ pattern.default_cwe.cwe }} </a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <div class="alert alert-success">
+        <strong>{{ message | escape }}</strong>
+    </div>
+    {% endfor %}
+</ul>
+{% endif %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#id_select_all').on('click', function() {
+            $('.pattern').prop('checked', this.checked);
+        });
+        $('.dropdown-menu').click(function(e) {
+            e.stopPropagation();
+        });
+        $("#patterns").DataTable()
+    });
+</script>
+{% endif %} {% endblock %}

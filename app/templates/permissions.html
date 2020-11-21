@@ -1,0 +1,45 @@
+{% extends 'base.html' %} {% load fontawesome_5 %} {% block content %}
+<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button>
+
+<table id="permissions" class="table table-striped table-bordered table-order">
+    <thead>
+        <tr>
+            <th style="width: 6%;">ID</th>
+            <th style="width: 10%;">Permission</th>
+            <th style="width: 30%;">Type</th>
+            <th style="width: 6%;">Severity</th>
+            <th style="width: 6%;"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for permission in permissions %}
+        <tr>
+            <td><a href="">{{ permission.id }}</a></td>
+            <td>{{ permission.name }}</td>
+            <td>{{ permission.type }}</td>
+            <td>{{ permission.get_default_severity_display }}</td>
+            {% if permission.default_severity == 'HI' %}
+            <td>{% fa5_icon 'exclamation-circle' color='red' %}</td>
+            {% elif permission.default_severity == 'ME' %}
+            <td>{% fa5_icon 'exclamation-circle' color='orange' %}</td>
+            {% else %}
+            <td>{% fa5_icon 'check-circle' color='green' %}</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.table-order').each(function() {
+            try {
+                $(this).DataTable({
+                    paging: false
+                });
+            } catch (error) {
+                console.log(this)
+            }
+        });
+    });
+</script>
+{% endblock %}

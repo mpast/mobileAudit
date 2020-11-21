@@ -1,0 +1,669 @@
+<link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+<style>
+    .table {
+        table-layout: fixed;
+    }
+    
+    td {
+        word-wrap: break-word;
+    }
+    
+    table,
+    th,
+    td {
+        border: 0.5px solid black;
+        font-size: small;
+    }
+    
+    th,
+    td {
+        padding: 1px;
+    }
+</style>
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title">Scan</h4>
+        <div id="progress-wrapper">
+            <p><b>Description: </b> {{ scan.description }}</p>
+            <p><b>Created by: </b> {{ scan.user.username }}</p>
+            <p><b>Status:</b> {{ scan.status }}</p>
+            <div class="progress">
+                {% if scan.progress == 100 %}
+                <div class="progress-bar bg-success progress-bar-striped" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
+                {% else %}
+                <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% if app.name %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="info"></a>
+        <h5 class="card-title">Application info</h5>
+
+        <table class="table table-striped table-bordered">
+            {% if app.icon %}
+            <tr>
+                <th>Icon</th>
+                <td><img class="img-thumbnail" alt="embedded" src="data:image/png;base64,{{ app.icon }}" /></td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th>App name</th>
+                <td>{{ app.name }}</td>
+            </tr>
+            <tr>
+                <th>Package</th>
+                <td>{{ app.package }}</td>
+            </tr>
+            <tr>
+                <th>Version name</th>
+                <td>{{ app.version_name }}</td>
+            </tr>
+            <tr>
+                <th>Version code</th>
+                <td>{{ app.version_code }}</td>
+            </tr>
+            <tr>
+                <th>Min version</th>
+                <td>{{ app.min_sdk_version }}</td>
+            </tr>
+            <tr>
+                <th>Max version</th>
+                <td>{{ app.max_sdk_version }}</td>
+            </tr>
+            <tr>
+                <th>Target version</th>
+                <td>{{ app.target_sdk_version }}</td>
+            </tr>
+            <tr>
+                <th>Effective version</th>
+                <td>{{ app.effective_target_sdk_version }}</td>
+            </tr>
+            <tr>
+                <th>File size</th>
+                <td>{{ app.file_size }}</td>
+            </tr>
+            <tr>
+                <th>md5</th>
+                <td>{{ app.md5 }}</td>
+            </tr>
+            <tr>
+                <th>sha256</th>
+                <td>{{ app.sha256 }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endif %} {% if scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="security"></a>
+        <h5 class="card-title">Security info</h5>
+        <table class="table table-bordered">
+            <tr>
+                <th style="width: 30%;">Number of findings</th>
+                <td>{{ scan.findings }}</td>
+            </tr>
+            <tr>
+                <th style="width: 30%;">By Severity</th>
+                <td>
+                    <table class="table table-borderless">
+                        {% for severity, number in findings_by_severity.items %}
+                        <tr>
+                            <th> {{ severity }} </th>
+                            {% if severity == 'Critical' %}
+                            <td style="color:black"> {{ number }} </td>
+                            {% elif severity == 'High' %}
+                            <td style="color:red"> {{ number }} </td>
+                            {% elif severity == 'Medium'%}
+                            <td style="color:orange"> {{ number }} </td>
+                            {% elif severity == 'Low' %}
+                            <td style="color:blue"> {{ number }} </td>
+                            {% else %}
+                            <td style="color:green"> {{ number }} </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+            {% if settings.VIRUSTOTAL_ENABLED %}
+            <tr>
+                <th style="width: 30%;">Detections in VT</th>
+                {% if antivirus_scan.malicious > 0 %}
+                <td style="color:red">{{ antivirus_scan.malicious }}</td>
+                {% else %}
+                <td style="color:green"> {{ antivirus_scan.malicious }}</td>
+                {% endif %}
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endif %} {% if permissions %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="permissions"></a>
+        <h5 class="card-title">Permissions</h5>
+        <table class="table table-striped table-bordered table-order">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 70%;">Name</th>
+                    <th style="width: 15%;">Type</th>
+                    <th style="width: 10%;">Severity</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for p in permissions %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ p.permission.name }} </td>
+                    <td>{{ p.permission.type }} </td>
+                    <td>{{ p.get_severity_display }} </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %} {% if activities %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="activities"></a>
+        <h5 class="card-title">Activities</h5>
+        <table class="table table-striped table-bordered table-order">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 70%;">Name</th>
+                    <th style="width: 15%;">Main</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for a in activities %}
+                <tr>
+                    <td>{{ a.id }}</td>
+                    <td>{{ a.name }} </td>
+                    {% if a.main %}
+                    <td style="color:green">Yes</td>
+                    {% else %}
+                    <td style="color:red">No</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %} {% if components_intents %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="components"></a>
+        <h5 class="card-title">Components</h5>
+        <table class="table table-bordered table-order">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 10%;">Type</th>
+                    <th style="width: 40%;">Name</th>
+                    <th style="width: 40%;">Intents</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for component, intents in components_intents %}
+                <tr>
+                    <td>{{ component.id }}</td>
+                    <td>{{ component.type }} </td>
+                    <td>{{ component.name }} </td>
+                    <td>
+                        {% if intents %}
+                        <table class="table table-borderless table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">ID</th>
+                                    <th style="width: 35%;">Intent</th>
+                                    <th style="width: 20%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for intent in intents %}
+                                <tr>
+                                    <td>{{ intent.id }}</td>
+                                    <td>{{ intent.name }}</td>
+                                    <td>{{ intent.action }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %} {% if certificates %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="certificates"></a>
+        <h5 class="card-title">Certificates</h5>
+        <table class="table table-striped table-bordered table-order">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Version</th>
+                    <th>Subject</th>
+                    <th>Issuer</th>
+                    <th>Hash algorithm</th>
+                    <th>Signature algorithm</th>
+                    <th>Serial number</th>
+                    <th>Sha1</th>
+                    <th>Sha256</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for certificate in certificates %}
+                <tr>
+                    <td>{{ certificate.id }}</td>
+                    <td>{{ certificate.version }} </td>
+                    <td>{{ certificate.subject }} </td>
+                    <td>{{ certificate.issuer }} </td>
+                    <td>{{ certificate.hash_algorithm }} </td>
+                    <td>{{ certificate.signature_algorithm }} </td>
+                    <td>{{ certificate.serial_number }} </td>
+                    <td>{{ certificate.sha1 }}</td>
+                    <td>{{ certificate.sha256 }}</td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+</div>{% endif %} {% if settings.VIRUSTOTAL_ENABLED and antivirus_scan %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="antivirus"></a>
+        <h5 class="card-title">Virus Total Scan</h5>
+        <span>VT Link</span>{{ settings.VIRUSTOTAL_FILE_URL }}{{ antivirus_scan.identifier }}
+        <br>
+        <table class="table table-bordered">
+            <tr>
+                <th style="width: 20%">ID</th>
+                <td>{{ antivirus_scan.identifier }}</td>
+            </tr>
+            <tr>
+                <th>Data</th>
+                <td>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th> Type </th>
+                            <td> {{ antivirus_scan.type }}</td>
+                        </tr>
+                        <tr>
+                            <th>Magic</th>
+                            <td>{{ antivirus_scan.magic }}</td>
+                        </tr>
+                        <tr>
+                            <th>Reputation</th>
+                            <td>{{ antivirus_scan.reputation }}</td>
+                        </tr>
+                        <tr>
+                            <th>Uploaded</th>
+                            {% if antivirus_scan.uploaded %}
+                            <td>Yes</td>
+                            {% else %}
+                            <td>No</td>
+                            {% endif %}
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <th>Date</th>
+                <td>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th> Last scan date </th>
+                            <td> {{ antivirus_scan.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>First seen</th>
+                            <td>{{ antivirus_scan.first_seen }}</td>
+                        </tr>
+                        <tr>
+                            <th>First submission</th>
+                            <td>{{ antivirus_scan.first_submission}}</td>
+                        </tr>
+                        <tr>
+                            <th>Last submission</th>
+                            <td>{{ antivirus_scan.last_submission}}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <th>Last scan</th>
+                <td>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Malicious</th>
+                            <td style="color:red">{{ antivirus_scan.malicious }}</td>
+                        </tr>
+                        <tr>
+                            <th>Harmless</th>
+                            <td style="color:green">{{ antivirus_scan.harmless }}</td>
+                        </tr>
+                        <tr>
+                            <th>Suspicious</th>
+                            <td>{{ antivirus_scan.suspicious }}</td>
+                        </tr>
+                        <tr>
+                            <th>Undetected</th>
+                            <td>{{ antivirus_scan.undetected }}</td>
+                        </tr>
+                        <tr>
+                            <th>Timeout</th>
+                            <td>{{ antivirus_scan.timeout }}</td>
+                        </tr>
+                        <tr>
+                            <th>Unsupported</th>
+                            <td>{{ antivirus_scan.unsupported }}</td>
+                        </tr>
+                        <tr>
+                            <th>Type Unsupported</th>
+                            <td>{{ antivirus_scan.type_unsupported }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <th>Hashes</th>
+                <td>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>md5</th>
+                            <td>{{ antivirus_scan.md5 }}</td>
+                        </tr>
+                        <tr>
+                            <th>sha256</th>
+                            <td>{{ antivirus_scan.sha256 }}</td>
+                        </tr>
+                        <tr>
+                            <th>ssdeep</th>
+                            <td>{{ antivirus_scan.ssdeep }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <th>Votes</th>
+                <td>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Harmless</th>
+                            <td style="color:green">{{ antivirus_scan.votes_harmless }}</td>
+                        </tr>
+                        <tr>
+                            <th>Malicious</th>
+                            <td style="color:red">{{ antivirus_scan.votes_malicious }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        {% if antivirus %}
+
+        <table class="table table-striped table-bordered table-order-paginate">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Antivirus</th>
+                    <th>Version</th>
+                    <th>Category</th>
+                    <th>Result</th>
+                    <th>Update</th>
+                    <th>Detected</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for av in antivirus %}
+                <tr>
+                    <td>{{ av.id }}</td>
+                    <td>{{ av.name }} </td>
+                    <td>{{ av.version }} </td>
+                    <td>{{ av.category }} </td>
+                    <td>{{ av.result }} </td>
+                    <td>{{ av.update }} </td>
+                    {% if av.result != null %}
+                    <td style="color: red;">Yes</td>
+                    {% else %}
+                    <td style="color: green;">No</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endif %} {% if findings or scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="findings"></a>
+        <h5 class="card-title">Findings</h5>
+        <p>Number of findings: {{ scan.findings }}</p>
+
+        <table class="table table-order table-bordered">
+            <thead>
+                <tr>
+                    <th style="width: 4%;">ID</th>
+                    <th style="width: 10%;">Finding</th>
+                    <th style="width: 8%;">Number</th>
+                    <th style="width: 90%;">Findings</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %} {% with id=category.id %} {% if findings_ordered|lookup:id %}
+                <tr>
+                    <td>{{ category.id }}</td>
+                    <td>{{ category.default_name }}</td>
+                    <td>{{ findings_ordered| lookup:id|length }}</td>
+                    <td id="category_{{id}}">
+                        <div>
+                            <table class="table table-borderless table-striped table-order">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 6%;">ID</th>
+                                        <th style="width: 8%;">Severity</th>
+                                        <th style="width: 30%;">File</th>
+                                        <th style="width: 6%;">LN</th>
+                                        <th style="width: 30%;">Line</th>
+                                        <th style="width: 8%;">Status</th>
+                                        <th style="width: 7%;">CWE</th>
+                                        {% if settings.DEFECTDOJO_ENABLED %}
+                                        <th style="width: 7%;">Dojo ID</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for finding in findings_ordered|lookup:id %}
+                                    <tr>
+                                        <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                        <td>{{ finding.get_severity_display }}</td>
+                                        <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
+                                        <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                        <td>{{ finding.line }}</td>
+                                        <td>{{ finding.get_status_display }}</td>
+                                        <td><a href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                                        {% if settings.DEFECTDOJO_ENABLED %}
+                                        <td>
+                                            {% if finding.defectdojo_id > 0 %}
+                                            <a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %} {% endwith %}{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %} {% if all_practices and scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="best_practices"></a>
+        <h5 class="card-title">Security Best Practices</h5>
+        <table class="table table-bordered table-order">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Name</th>
+                    <th style="width: 25%;">Description</th>
+                    <th style="width: 70%;">Implementation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for practice in all_practices %}
+                <tr>
+                    <td>{{ practice.default_name }} </td>
+                    <td>{{ practice.default_description }} </td>
+                    <td>
+                        <table class="table table-borderless table-striped table-order-paginate">
+                            <thead>
+                                <tr>
+                                    <th style="width: 6%;">ID</th>
+                                    <th style="width: 40%;">Path</th>
+                                    <th style="width: 7%;">LN</th>
+                                    <th style="width: 50%;">Line</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for finding in best_practices %} {% if finding.type.id == practice.id %}
+                                <tr>
+                                    <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                    <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
+                                    <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                    <td>{{ finding.line }}
+                                    </td>
+                                </tr>
+                                {% endif %} {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %} {% if files or scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="files"></a>
+        <h5 class="card-title">Files</h5>
+        <table class="table table-striped table-bordered table-order-paginate">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Path</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for file in files %}
+                <tr>
+                    <td>{{ file.id }}</td>
+                    {% if file.type == 'html' %}
+                    <td>{{ file.name }}</td>
+                    {% else %}
+                    <td><a href="{% url 'view_file' id=file.id %}" target="_blank">{{ file.name }} </a></td>
+                    {% endif %}
+                    <td>{{ file.type }} </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+</div>{% endif %} {% if strings or scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="strings"></a>
+        <h5 class="card-title">Strings</h5>
+        <table class="table table-striped table-bordered table-order-paginate">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                    <th>Finding</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for string in strings %}
+                <tr>
+                    <td>{{ string.id }}</td>
+                    <td>{{ string.type }} </td>
+                    <td>{{ string.value }} </td>
+                    <td><a href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %} </div>
+</div> {% if database or scan.progress >= 40 %}
+<br>
+<div class="card">
+    <div class="card-body">
+        <a name="databases"></a>
+        <h5 class="card-title">Databases</h5>
+        <table class="table table-striped table-bordered table-order-paginate">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Table</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for table in database %}
+                <tr>
+                    <td>{{ table.id }}</td>
+                    <td>{{ table.table }} </td>
+                    <td>{{ table.info }} </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

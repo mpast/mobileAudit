@@ -1,0 +1,78 @@
+{% extends 'base.html' %} {% load fontawesome_5 %} {% block content %}
+<h4>App</h4>
+{% if app %}
+<table class="table table-striped table-bordered">
+    <tr>
+        <th>App name</th>
+        <td>{{ app.name }}</td>
+    </tr>
+    <tr>
+        <th>Description</th>
+        <td>{{ app.description }}</td>
+    </tr>
+    <tr>
+        <th>Created by</th>
+        <td>{{ app.user }}</td>
+    </tr>
+</table>
+<h5>Scans</h5>
+<a href="{% url 'create_scan' app_id=app.id %}" class="btn btn-outline-success">New Scan</a> {% if scans %}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th style="width: 5%;">ID</th>
+            <th style="width: 10%;">Description</th>
+            <th style="width: 10%;">Apk name</th>
+            <th style="width: 5%;">Version</th>
+            <th style="width: 10%;">Created On</th>
+            <th style="width: 10%;">Status</th>
+            <th style="width: 5%;">Progress</th>
+            {% if settings.VIRUSTOTAL_ENABLED %}
+            <th style="width: 10%;">VT</th>
+            {% endif %}
+            <th style="width: 10%;">Findings</th>
+            <th style="width: 30%;">By Severity</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for scan in scans %}
+        <tr>
+            <td><a href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
+            <td>{{ scan.description }} </td>
+            <td>{{ scan.apk.name }} </td>
+            <td>{{ scan.apk.version_code }}</td>
+            <td>{{ scan.apk.created_on }}</td>
+            <td>{{ scan.status }}</td>
+            <td>{{ scan.progress }} %</td>
+            {% for id, scan_data in scans_data.items %} {% if id == scan.id %} {% if settings.VIRUSTOTAL_ENABLED %} {% if scan_data.antivirus.malicious > 0 %}
+            <td> {% fa5_icon 'shield-alt' color='red' %} {{ scan_data.antivirus.malicious }}</td>
+            {% else %}
+            <td> {% fa5_icon 'shield-alt' color='green' %} {{ scan_data.antivirus.malicious }}</td>
+            {% endif %} {% endif %}
+            <td><a href="{% url 'findings' scan_id=scan.id %}" target="_blank">{{ scan.findings }}</a></td>
+            <td>
+                <table class="table table-borderless">
+                    {% for severity, number in scan_data.findings.items %}
+                    <tr>
+                        <th> {{ severity }} </th>
+                        {% if severity == 'Critical' %}
+                        <td>{% fa5_icon 'exclamation-circle' color='black' %} {{ number }} </td>
+                        {% elif severity == 'High' %}
+                        <td>{% fa5_icon 'exclamation-circle' color='red' %} {{ number }} </td>
+                        {% elif severity == 'Medium'%}
+                        <td>{% fa5_icon 'exclamation-circle' color='orange' %} {{ number }}</td>
+                        {% elif severity == 'Low' %}
+                        <td>{% fa5_icon 'exclamation-circle' color='blue' %} {{ number }}</td>
+                        {% else %}
+                        <td>{% fa5_icon 'check-circle' color='green' %} {{ number }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </table>
+            </td>
+            {% endif %} {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %} {% endif %} {% endblock %}
