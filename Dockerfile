@@ -21,8 +21,8 @@ RUN \
 # Create a directory in the container in /app
 RUN mkdir /app
 
-# Copy the requirements to that directory
-COPY requirements.txt /app
+# Copy all to /app directory
+COPY . /app
 
 # Use /app as the workdir
 WORKDIR /app
@@ -30,13 +30,13 @@ WORKDIR /app
 # Install python dependencies
 RUN pip install -r requirements.txt
 
-# Copy all to /app directory
-COPY . /app/
-
 # Encoding configuration
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV PYTHONIOENCODING utf8
+
+# Set the permissions to the user
+RUN chown -R 1001:1001 /app
 
 # Run the container as 1001 user
 USER 1001

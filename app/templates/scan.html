@@ -247,7 +247,7 @@
                 <a href="{% url 'export' id=scan.id %}" class="btn btn-outline-dark">Export {% fa5_icon 'download' %}</a> {% endif %}
             </div>
         </div>
-        {% if app.name %}
+        {% if scan.apk_name %}
         <br>
         <div class="card">
             <div class="card-body">
@@ -255,55 +255,55 @@
                 <h5 class="card-title">Application info</h5>
 
                 <table class="table table-striped table-bordered">
-                    {% if app.icon %}
+                    {% if scan.icon %}
                     <tr>
                         <th>Icon</th>
-                        <td><img class="img-thumbnail" alt="embedded" src="data:image/png;base64,{{ app.icon }}" /></td>
+                        <td><img class="img-thumbnail" alt="embedded" src="data:image/png;base64,{{ scan.icon }}" /></td>
                     </tr>
                     {% endif %}
                     <tr>
                         <th>App name</th>
-                        <td>{{ app.name }}</td>
+                        <td>{{ scan.apk_name }}</td>
                     </tr>
                     <tr>
                         <th>Package</th>
-                        <td>{{ app.package }}</td>
+                        <td>{{ scan.package }}</td>
                     </tr>
                     <tr>
                         <th>Version name</th>
-                        <td>{{ app.version_name }}</td>
+                        <td>{{ scan.version_name }}</td>
                     </tr>
                     <tr>
                         <th>Version code</th>
-                        <td>{{ app.version_code }}</td>
+                        <td>{{ scan.version_code }}</td>
                     </tr>
                     <tr>
                         <th>Min version</th>
-                        <td>{{ app.min_sdk_version }}</td>
+                        <td>{{ scan.min_sdk_version }}</td>
                     </tr>
                     <tr>
                         <th>Max version</th>
-                        <td>{{ app.max_sdk_version }}</td>
+                        <td>{{ scan.max_sdk_version }}</td>
                     </tr>
                     <tr>
                         <th>Target version</th>
-                        <td>{{ app.target_sdk_version }}</td>
+                        <td>{{ scan.target_sdk_version }}</td>
                     </tr>
                     <tr>
                         <th>Effective version</th>
-                        <td>{{ app.effective_target_sdk_version }}</td>
+                        <td>{{ scan.effective_target_sdk_version }}</td>
                     </tr>
                     <tr>
                         <th>File size</th>
-                        <td>{{ app.file_size }}</td>
+                        <td>{{ scan.file_size }}</td>
                     </tr>
                     <tr>
                         <th>md5</th>
-                        <td>{{ app.md5 }}</td>
+                        <td>{{ scan.md5 }}</td>
                     </tr>
                     <tr>
                         <th>sha256</th>
-                        <td>{{ app.sha256 }}</td>
+                        <td>{{ scan.sha256 }}</td>
                     </tr>
                 </table>
             </div>

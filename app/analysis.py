@@ -5,7 +5,6 @@ from androguard.core.androconf import show_logging
 from django.conf import settings
 import logging, os, threading, hashlib, re, linecache, base64, requests, json, urllib
 from app.models import *
-from app import permissions, patterns
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
@@ -17,16 +16,14 @@ logger = logging.getLogger('app')
 APK_PATH = ""
 DECOMPILE_PATH = ""
 
-def start_analysis(apk):
-    scan = Scan(apk=apk, app=apk.app, description=apk.description, status='Starting', progress=1, user=apk.user)
-    scan.save()
-    t = threading.Thread(target=analyze_apk, args=(apk, scan))
+def start_analysis(scan):
+    t = threading.Thread(target=analyze_apk, args=(scan,))
     t.start()
     return scan
 
-def set_hash_app(apk):
-    if not apk.sha256:
-        f = apk.apk.open('rb')
+def set_hash_app(scan):
+    if not scan.sha256:
+        f = scan.apk.open('rb')
         sha1 = hashlib.sha1()
         md5 = hashlib.md5()
         sha256 = hashlib.sha256()
@@ -39,56 +36,56 @@ def set_hash_app(apk):
             md5.update(f.read())
             sha1.update(f.read())
             sha256.update(f.read())
-        apk.md5 = md5.hexdigest()
-        apk.sha1 = sha1.hexdigest()
-        apk.sha256 = sha256.hexdigest()
-        apk.file_size = apk.apk.size
-        apk.save()
+        scan.md5 = md5.hexdigest()
+        scan.sha1 = sha1.hexdigest()
+        scan.sha256 = sha256.hexdigest()
+        scan.file_size = scan.apk.size
+        scan.save()
         f.close()
-    return apk
+    return scan
 
 
-def analyze_apk(apk, scan):
+def analyze_apk(scan):
     # Enable log output
     #show_logging(level=logging.DEBUG)
     global APK_PATH
     global DECOMPILE_PATH
-    APK_PATH = settings.BASE_DIR + apk.apk.url
+    APK_PATH = settings.BASE_DIR + scan.apk.url
     DECOMPILE_PATH = os.path.splitext(APK_PATH)[0]
     try:
-        scan.status = 'In progress'
-        scan.progress = 1
+        scan.status = 'In Progress'
+        scan.progress = 3
         scan.save()
         logger.debug(scan.status)
         a = APK(APK_PATH)
-        apk = set_hash_app(apk)
+        scan = set_hash_app(scan)
         scan.status = 'Getting info of apk'
         scan.progress = 5
         scan.save()
         logger.debug(scan.status)
-        apk = get_info_apk(a, apk)
+        scan = get_info_apk(a, scan)
         scan.status = 'Getting info of certificates'
         scan.progress = 10
         scan.save()
         logger.debug(scan.status)
-        certificates = get_info_certificate(a, apk)
+        certificates = get_info_certificate(a, scan)
         if (settings.VIRUSTOTAL_ENABLED):
             scan.status = 'Getting info of VT'
             scan.progress = 15
             scan.save()
             logger.debug(scan.status)
-            report = get_report_virus_total(scan, apk.sha256)
+            report = get_report_virus_total(scan, scan.sha256)
             if (not report and settings.VIRUSTOTAL_UPLOAD):
                 scan.status = 'Upload to VT'
                 scan.save()
-                upload_virus_total(scan, APK_PATH, apk.sha256)
+                upload_virus_total(scan, APK_PATH, scan.sha256)
         scan.status = 'Decompiling'
         scan.progress = 20
         scan.save()
         logger.debug(scan.status)
         decompile_jadx()
         if (a.get_app_icon()):
-            update_icon(apk, DECOMPILE_PATH + '/resources/' + a.get_app_icon())
+            update_icon(scan, DECOMPILE_PATH + '/resources/' + a.get_app_icon())
         scan.status = 'Finding vulnerabilities'
         scan.progress = 40
         scan.save()
@@ -96,13 +93,13 @@ def analyze_apk(apk, scan):
         findings = get_tree_dir(scan)
         scan.status = 'Finished'
         scan.progress = 100
-        scan.apk.finished_on = datetime.now()
+        scan.finished_on = datetime.now()
         scan.save()
         logger.debug(scan.status)
     except Exception as e:
         scan.progress = 100
         scan.status = "Error"
-        scan.apk.finished_on = datetime.now()
+        scan.finished_on = datetime.now()
         scan.save()
         import traceback
         traceback.print_exc()
@@ -114,28 +111,29 @@ def decompile_jadx():
         os.system('jadx -d {} {}'.format(DECOMPILE_PATH, APK_PATH))
     # now we have sources/resources decompiled
 
-def update_icon(apk, path):
+def update_icon(scan, path):
     encoded_string = ''
     try:
         with open(path, 'rb') as image_file:
             encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-            apk.icon = encoded_string
-            apk.save()
+            scan.icon = encoded_string
+            scan.save()
     except Exception as e:
         logger.error("no icon")  
 
-def get_info_apk(a, apk):
-    set_hash_app(apk)
-    apk.package = a.get_package()
-    apk.name = a.get_app_name()
-    apk.version_code = a.get_androidversion_code()
-    apk.version_name = a.get_androidversion_name()
-    apk.min_sdk_version = a.get_min_sdk_version()
-    apk.max_sdk_version = a.get_max_sdk_version()
-    apk.target_sdk_version = a.get_target_sdk_version()
-    apk.effective_target_sdk_version = a.get_effective_target_sdk_version()
-    apk.manifest = a.get_android_manifest_axml().get_xml()
-    apk.save()
+
+def get_info_apk(a, scan):
+    set_hash_app(scan)
+    scan.package = a.get_package()
+    scan.apk_name = a.get_app_name()
+    scan.version_code = a.get_androidversion_code()
+    scan.version_name = a.get_androidversion_name()
+    scan.min_sdk_version = a.get_min_sdk_version()
+    scan.max_sdk_version = a.get_max_sdk_version()
+    scan.target_sdk_version = a.get_target_sdk_version()
+    scan.effective_target_sdk_version = a.get_effective_target_sdk_version()
+    scan.manifest = a.get_android_manifest_axml().get_xml()
+    scan.save()
 
     permissions = a.get_permissions()
     for permission in permissions:
@@ -144,29 +142,29 @@ def get_info_apk(a, apk):
         except Exception as e:
             permission_type = PermissionType(name=permission, type='Other', default_severity=Severity.HI)
             permission_type.save()
-        p = Permission(apk=apk, permission=permission_type, severity=permission_type.default_severity)
+        p = Permission(scan=scan, permission=permission_type, severity=permission_type.default_severity)
         p.save()
     
     #Activities and their intent-filters
     for activity in a.get_activities():
-        get_intent_filter(a, apk, 'activity', activity)
+        get_intent_filter(a, scan, 'activity', activity)
 
     #Services and their intent-filters:
     for service in a.get_services():
-        get_intent_filter(a, apk, 'service', service)
+        get_intent_filter(a, scan, 'service', service)
     
     #Receivers and their intent-filters:
     for receiver in a.get_receivers():
-        get_intent_filter(a, apk, 'receiver', receiver)
+        get_intent_filter(a, scan, 'receiver', receiver)
     
     #Providers and their intent-filters:
     for provider in a.get_providers():
-        get_intent_filter(a, apk, 'provider', provider)
+        get_intent_filter(a, scan, 'provider', provider)
     
-    return apk
+    return scan
 
-def get_intent_filter(a, apk, type, name):
-    component = Component(name=name, apk=apk, type=type)
+def get_intent_filter(a, scan, type, name):
+    component = Component(name=name, scan=scan, type=type)
     component.save()
     main = False
     launcher = False
@@ -177,16 +175,16 @@ def get_intent_filter(a, apk, type, name):
                 main = True
             if (action == 'category' and intent == 'android.intent.category.LAUNCHER'):
                 launcher = True
-            intent = IntentFilter(name=intent, apk=apk, action=action, component=component)
+            intent = IntentFilter(name=intent, scan=scan, action=action, component=component)
             intent.save()
     if (type == 'activity'):
         if (main and launcher):
             main_activity = True
-        activity = Activity(name=name, apk=apk, main=main_activity)
+        activity = Activity(name=name, scan=scan, main=main_activity)
         activity.save()
 
 
-def get_info_certificate(a, apk):
+def get_info_certificate(a, scan):
     # first check if this APK is signed
     certificates = list()
     if a.is_signed():
@@ -195,7 +193,7 @@ def get_info_certificate(a, apk):
             # Each cert is now a asn1crypt.x509.Certificate object
             # From the Certificate object, we can query stuff like:
             c = Certificate(
-                apk=apk,
+                scan=scan,
                 version = '{}'.format('v1, v2, v3' if a.is_signed_v1() and a.is_signed_v2() and a.is_signed_v3() else 'v1' if a.is_signed_v1() else 'v2' if a.is_signed_v2() else 'v3'),
                 sha1 = cert.sha1, #the sha1 fingerprint
                 sha256 = cert.sha256,  # the sha256 fingerprint
@@ -317,7 +315,7 @@ def find_patterns(i, prev_line, line, name, dir, scan):
 def get_lines(finding='', path=''):
     formatter = HtmlFormatter(linenos=False, cssclass="source")
     if (finding):
-        APK_PATH = settings.BASE_DIR + finding.scan.apk.apk.url
+        APK_PATH = settings.BASE_DIR + finding.scan.apk.url
         DECOMPILE_PATH = os.path.splitext(APK_PATH)[0]
         path = DECOMPILE_PATH + finding.path
     lines = []
@@ -356,7 +354,7 @@ def create_finding_on_dojo(finding):
             'date': finding.created_on.strftime("%Y-%m-%d"),
             #'product': product_id,
             #'engagement': engagement_id,
-            'test': finding.scan.apk.defectdojo_id,
+            'test': finding.scan.defectdojo_id,
             'impact': "N/A",
             'active': True,
             #'verified': verified,

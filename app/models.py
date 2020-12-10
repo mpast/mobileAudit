@@ -56,40 +56,31 @@ class Application(models.Model):
     created_on = models.DateTimeField(auto_now_add=True, null=True)
     updated_on = models.DateTimeField(auto_now=True, null=True)
 
-class Apk(models.Model):
+class Scan(models.Model):
     id = models.AutoField(primary_key=True)
     app = models.ForeignKey(Application, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, blank=True)
-    description = models.CharField(max_length=255, blank=False)
     apk = models.FileField(upload_to='apk/', blank=False, validators=[validate_file_extension])
+    description = models.CharField(max_length=255, blank=False)
     defectdojo_id = models.IntegerField(blank=True, default=0)
-    file_size = models.CharField(max_length=255, blank=True)
-    md5 = models.CharField(max_length=255, blank=True)
-    sha1 = models.CharField(max_length=255, blank=True)
-    sha256 = models.CharField(max_length=255, blank=True)
-    package = models.CharField(max_length=255, blank=True)
-    icon = models.TextField(blank=True)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    status = models.CharField(max_length=50,blank=True, null=True)
+    progress = models.IntegerField(blank=True, null=True)
+    findings = models.IntegerField(blank=True, null=True, default=0)
+    apk_name = models.CharField(max_length=255, blank=True, null=True)
+    file_size = models.CharField(max_length=255, blank=True, null=True)
+    md5 = models.CharField(max_length=255, blank=True, null=True)
+    sha1 = models.CharField(max_length=255, blank=True, null=True)
+    sha256 = models.CharField(max_length=255, blank=True, null=True)
+    package = models.CharField(max_length=255, blank=True, null=True)
+    icon = models.TextField(blank=True, null=True)
     version_code = models.CharField(max_length=50, blank=True, null=True)
     version_name = models.CharField(max_length=50, blank=True, null=True)
     min_sdk_version = models.CharField(max_length=50, blank=True, null=True)
     max_sdk_version = models.CharField(max_length=50, blank=True, null=True)
     target_sdk_version = models.CharField(max_length=50, blank=True, null=True)
     effective_target_sdk_version = models.CharField(max_length=50, blank=True, null=True)
-    manifest = models.TextField(blank=True)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
-    created_on = models.DateTimeField(auto_now_add=True, null=True)
-    updated_on = models.DateTimeField(auto_now=True, null=True)
-    finished_on = models.DateTimeField(null=True)
-
-class Scan(models.Model):
-    id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
-    app = models.ForeignKey(Application, on_delete=models.CASCADE)
-    description = models.CharField(max_length=255, blank=False)
-    status = models.CharField(max_length=50)
-    progress = models.IntegerField()
-    findings = models.IntegerField(blank=True, default=0)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    manifest = models.TextField(blank=True, null=True)
     created_on = models.DateTimeField(auto_now_add=True, null=True)
     updated_on = models.DateTimeField(auto_now=True, null=True)
 
@@ -142,7 +133,7 @@ class Finding(models.Model):
 
 class Activity(models.Model):
     id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
+    scan = models.ForeignKey(Scan, on_delete=models.CASCADE)
     name = models.TextField()
     main = models.BooleanField(default=False)
     exported = models.BooleanField(default=False)
@@ -162,7 +153,7 @@ class PermissionType(models.Model):
 
 class Permission(models.Model):
     id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
+    scan = models.ForeignKey(Scan, on_delete=models.CASCADE)
     permission = models.ForeignKey(PermissionType, on_delete=models.CASCADE)
     severity = models.CharField(
         max_length=10,
@@ -173,7 +164,7 @@ class Permission(models.Model):
 
 class Component(models.Model):
     id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
+    scan = models.ForeignKey(Scan, on_delete=models.CASCADE)
     name = models.TextField()
     type = models.TextField()
     created_on = models.DateTimeField(auto_now_add=True, null=True)
@@ -181,7 +172,7 @@ class Component(models.Model):
 
 class IntentFilter(models.Model):
     id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
+    scan = models.ForeignKey(Scan, on_delete=models.CASCADE)
     name = models.TextField()
     action = models.TextField()
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
@@ -190,7 +181,7 @@ class IntentFilter(models.Model):
 
 class Certificate(models.Model):
     id = models.AutoField(primary_key=True)
-    apk = models.ForeignKey(Apk, on_delete=models.CASCADE)
+    scan = models.ForeignKey(Scan, on_delete=models.CASCADE)
     version = models.CharField(max_length=10, blank=True)
     sha1 = models.CharField(max_length=255, blank=True)
     sha256 = models.CharField(max_length=255, blank=True)

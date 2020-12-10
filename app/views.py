@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
 from app.forms import ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
-from app import views, analysis
+from app import analysis
 from app.models import *
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
@@ -115,8 +115,8 @@ def get_findings_by_severity(scan_id):
     }
 
 
-def get_components_intents(apk_id):
-    components = Component.objects.filter(apk=apk_id)
+def get_components_intents(scan_id):
+    components = Component.objects.filter(scan=scan_id)
     components_intents = list()
     for component in components:
         intents = IntentFilter.objects.filter(component=component)
@@ -126,12 +126,10 @@ def get_components_intents(apk_id):
 @login_required
 def scan(request, id):
     scan = Scan.objects.get(pk=id)
-    apk = scan.apk
-    apk_id = apk.id
-    certificates = Certificate.objects.filter(apk=apk_id)
-    permissions = Permission.objects.filter(apk=apk_id)
-    activities = Activity.objects.filter(apk=apk_id)
-    components_intents = get_components_intents(apk_id)
+    certificates = Certificate.objects.filter(scan=id)
+    permissions = Permission.objects.filter(scan=id)
+    activities = Activity.objects.filter(scan=id)
+    components_intents = get_components_intents(id)
     strings = String.objects.filter(scan=id).order_by('type')
     findings = Finding.objects.filter(scan=id).exclude(severity=Severity.NO).order_by('id')
     findings_by_category = order_findings_by_categories(findings)
@@ -148,7 +146,6 @@ def scan(request, id):
         antivirus = False
     return render(request, 'scan.html', {
         'scan' : scan,
-        'app' : apk,
         'permissions': permissions,
         'findings': findings,
         'certificates': certificates,
@@ -172,12 +169,14 @@ def create_scan(request, app_id = ''):
     if request.method == 'POST':
         form = ScanForm(request.POST, request.FILES)
         if form.is_valid():
-            obj = form.save(commit=False)
-            obj.user = request.user
-            form_saved = obj.save()
-            analysis.start_analysis(obj)
+            scan = form.save(commit=False)
+            scan.user = request.user
+            scan.status = 'In Progress'
+            scan.progress = 1
+            form_saved = scan.save()
+            analysis.start_analysis(scan)
             messages.success(request, 'Form submission successful')
-            return redirect(reverse('scan', kwargs={"id": obj.id}))
+            return redirect(reverse('scan', kwargs={"id": scan.id}))
     else:
         if (app_id == ''):
             form = ScanForm()
@@ -384,7 +383,7 @@ def malware(request):
 @login_required
 def update_virustotal(request, scan_id):
     scan = Scan.objects.get(pk=scan_id)
-    analysis.get_report_virus_total(scan, scan.apk.sha256)
+    analysis.get_report_virus_total(scan, scan.sha256)
     return redirect(reverse('scan', kwargs={"id": scan_id}))
 
 def append_pdf(pdf, output):
@@ -393,14 +392,11 @@ def append_pdf(pdf, output):
 @login_required
 def export(request, id):
     scan = Scan.objects.get(pk=id)
-    
     t = get_template('export.html')
-    apk = scan.apk
-    apk_id = apk.id
-    certificates = Certificate.objects.filter(apk=apk_id)
-    permissions = Permission.objects.filter(apk=apk_id)
-    activities = Activity.objects.filter(apk=apk_id)
-    components_intents = get_components_intents(apk_id)
+    certificates = Certificate.objects.filter(scan=id)
+    permissions = Permission.objects.filter(scan=id)
+    activities = Activity.objects.filter(scan=id)
+    components_intents = get_components_intents(id)
     strings = String.objects.filter(scan=id).order_by('type')
     findings = Finding.objects.filter(scan=id).exclude(severity=Severity.NO).order_by('id')
     findings_by_category = order_findings_by_categories(findings)
@@ -417,7 +413,6 @@ def export(request, id):
         antivirus = False
     c = {
         'scan' : scan,
-        'app' : apk,
         'permissions': permissions,
         'findings': findings,
         'certificates': certificates,

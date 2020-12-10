@@ -20,6 +20,9 @@ INSTALLED_APPS = [
     'bootstrap4',
     'widget_tweaks',
     'fontawesome_5',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'drf_yasg',
     'app',
 ]
 
@@ -54,7 +57,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'app.config.wsgi'
 
 
-SECRET_KEY = env("SECRET_KEY", "E")
+SECRET_KEY = env("SECRET_KEY", "<SECRET_KEY>")
 
 DEBUG = int(env("DEBUG", 0))
 
@@ -67,7 +70,7 @@ if (env("ENV") == "PROD"):
     DATABASES = {
         'default': {
             "ENGINE": env("SQL_ENGINE", "django.db.backends.sqlite3"),
-            "NAME": env("SQL_DATABASE", "audit"),
+            "NAME": env("SQL_DATABASE", os.path.join(BASE_DIR, "db.sqlite3")),
             "USER": env("SQL_USER", "postgres"),
             "PASSWORD": env("SQL_PASSWORD", "postgres"),
             "HOST": env("SQL_HOST", "db"),
@@ -101,6 +104,24 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Token': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   },
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
@@ -116,7 +137,7 @@ USE_TZ = True
 TIME_ZONE = 'Europe/Madrid'
 
 # Fontawesome
-FONTAWESOME_5_CSS = '/static/fontawesome_5/css/fontawesome.css'
+#FONTAWESOME_5_CSS = '/static/fontawesome_5/css/fontawesome.css'
 
 # OTHER TOOLS
 CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
@@ -124,13 +145,13 @@ CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 MALWAREDB_ENABLED = env('MALWAREDB_ENABLED', True)
 MALWAREDB_URL = env('MALWAREDB_URL', 'https://www.malwaredomainlist.com/mdlcsv.php')
 
-VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
+VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', True)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')
 VIRUSTOTAL_FILE_URL = env('VIRUSTOTAL_FILE_URL', 'https://www.virustotal.com/gui/file/')
 VIRUSTOTAL_API_URL_V3 = env('VIRUSTOTAL_API_URL_V3', 'https://www.virustotal.com/api/v3/')
 VIRUSTOTAL_URL_V2 = env('VIRUSTOTAL_API_URL_V2', 'https://www.virustotal.com/vtapi/v2/file/')
 VIRUSTOTAL_API_KEY = env('VIRUSTOTAL_API_KEY', '')
-VIRUSTOTAL_UPLOAD = env('VIRUSTOTAL_UPLOAD', False)
+VIRUSTOTAL_UPLOAD = env('VIRUSTOTAL_UPLOAD', True)
 
 DEFECTDOJO_ENABLED = env('DEFECTDOJO_ENABLED', False)
 DEFECTDOJO_URL = env('DEFECTDOJO_URL', 'http://defectdojo:8080/finding/')
@@ -140,6 +161,7 @@ DEFECTDOJO_API_KEY = env('DEFECTDOJO_API_KEY', '')
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 LOGIN_REDIRECT_URL = 'home'
 
@@ -149,7 +171,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_COOKIE_AGE = 60*60*60 #expires at 60 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = False
 
 LOGGING = {
     'version': 1,

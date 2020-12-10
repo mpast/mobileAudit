@@ -39,9 +39,9 @@
         <tr>
             <td><a href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
             <td>{{ scan.description }} </td>
-            <td>{{ scan.apk.name }} </td>
-            <td>{{ scan.apk.version_code }}</td>
-            <td>{{ scan.apk.created_on }}</td>
+            <td>{{ scan.apk_name }} </td>
+            <td>{{ scan.version_code }}</td>
+            <td>{{ scan.created_on }}</td>
             <td>{{ scan.status }}</td>
             <td>{{ scan.progress }} %</td>
             {% for id, scan_data in scans_data.items %} {% if id == scan.id %} {% if settings.VIRUSTOTAL_ENABLED %} {% if scan_data.antivirus.malicious > 0 %}

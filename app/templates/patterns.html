@@ -1,5 +1,5 @@
 {% extends 'base.html' %} {% load fontawesome_5 %} {% block content %}
-<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button> {% if not patterns %}
+<button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button> {% if patterns %}
 <br>
 <form action="{% url 'patterns' %}" method="post" enctype="multipart/form-data">
     <div class="btn-group mr-2">

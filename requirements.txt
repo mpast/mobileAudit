@@ -9,3 +9,5 @@ requests==2.24.0
 pdfkit==0.6.1
 uwsgi==2.0.19.1
 Pygments==2.7.2
+djangorestframework==3.12.2
+drf-yasg==1.20.0

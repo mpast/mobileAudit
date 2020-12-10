@@ -1,5 +1,5 @@
 from django import forms
-from app.models import Apk, Application, Finding, Severity, Status, Scan, Cwe, Profile
+from app.models import *
 from django.forms import ModelChoiceField
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
@@ -37,7 +37,7 @@ class ProfileForm(forms.ModelForm):
 class ScanForm(forms.ModelForm):
     app = ApplicationModelChoiceField(queryset=Application.objects.all())
     class Meta:   
-        model = Apk
+        model = Scan
         fields = ('description', 'apk', 'app', 'defectdojo_id')
        
 class ApplicationForm(forms.ModelForm):

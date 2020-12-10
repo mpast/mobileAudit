@@ -11,17 +11,19 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
-      - ${SQL_PORT:-5432}
+      - ${SQL_PORT:-5432}:5432
   web:
     build: 
       context: ./
     env_file:
       - ./.env.example
-    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py loaddata data && uwsgi --http 0.0.0.0:8000 --enable-threads --processes 2 --threads 1 --module app.config.wsgi"
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py loaddata data && python manage.py collectstatic --noinput && uwsgi --http 0.0.0.0:8000 --enable-threads --processes 2 --threads 1 --module app.config.wsgi"
     volumes:
       - .:/app
     expose:
       - "8000"
+    extra_hosts:
+      - "defectdojo:192.168.1.42"
     depends_on:
       - db
   nginx:
