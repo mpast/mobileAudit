@@ -4,6 +4,21 @@
 
 **MobileAudit** - SAST and Malware Analysis for Android Mobile APKs
 
+  - [Components](#components)
+  - [Docker Base images](#docker-base-images)
+  - [Main features](#main-features)
+  - [Integrations](#integrations)
+  - [Install](#install)
+  - [API v1](#api-v1)
+    - [Usage](#usage)
+    - [Swagger](#swagger)
+    - [ReDoc](#redoc)
+    - [Endpoints](#endpoints)
+  - [TLS](#tls)
+    - [Pre-requirements](#pre-requirements)
+    - [Nginx configuration](#nginx-configuration)
+    - [Docker configuration](#docker-configuration)
+  - [Environment variables](#environment-variables)
 ---------------------------------------
 
 Django Web application for performing Static Analysis and detecting malware in Android APKs
@@ -22,6 +37,7 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 
 | Image |  Tags | Base |
 |--------------------|-------|---------------------|
+| mpast/mobile_audit | 1.2.0 | python:3.9.1-buster |
 | mpast/mobile_audit | 1.1.0 | python:3.9.0-buster |
 | mpast/mobile_audit | 1.0.0 | python:3.9.0-buster |
 
@@ -36,7 +52,7 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 - [x] All scan results can be exported to PDF
 - [x] User authentication and user management
 - [x] API v1 with Swagger and ReDoc
-- [ ] TLS
+- [x] TLS
 - [ ] Export to Markdown
 - [ ] Export to CSV
 - [ ] LDAP integration
@@ -44,11 +60,19 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 
 ### Integrations
 
-- Virus Total (API v3): it checks if there has been an scan of the APK and extract all its information. Also, there is the possibility of uploading the APK is selected a property in the environment (Disabled by default).
-- Defect Dojo (API v2): it is possible to upload the findings to the defect manager.
-- MalwareDB: it checks in the database if there are URLs in the APK that are related with Malware.
+#### Virus Total (API v3)
 
-### Install
+It checks if there has been an scan of the APK and extract all its information. Also, there is the possibility of uploading the APK is selected a property in the environment (Disabled by default).
+
+#### Defect Dojo (API v2)
+
+It is possible to upload the findings to the defect manager.
+
+#### MalwareDB
+
+It checks in the database if there are URLs in the APK that are related with Malware.
+
+### Installation
 
 Using Docker-compose:
 
@@ -67,6 +91,11 @@ docker-compose build
 Once the application has launched, you can test the application by navigating to: http://localhost:8888/ to access the dashboard.
 
 ![Dashboard](app/static/dashboard.png)
+
+Also, there is a TLS version running in port 443, so you can test the application by navigating to: https://localhost/ to access the dashboard.
+
+For more information, see [TLS](#tls)
+
 
 In each of the scans, it would have the following information:
 
@@ -113,6 +142,31 @@ REST API integration with Swagger and ReDoc.
 * A YAML view of the API specification at `/swagger.yaml`
 * A swagger-ui view of your API specification at `/swagger/`
 * A ReDoc view of your API specification at `/redoc/`
+
+### TLS
+
+#### Pre-requirements
+
+* Add the certificates into `nginx/ssl`
+* To generate a self-signed certificate:
+
+```sh
+openssl req -x509 -nodes -days 1 -newkey rsa:4096 -subj "/C=ES/ST=Madrid/L=Madrid/O=Example/OU=IT/CN=localhost" -keyout nginx/ssl/nginx.key -out nginx/ssl/nginx.crt
+```
+
+#### Nginx configuration
+
+* TLS - port 443: `nginx/app_tls.conf`
+* Standard - port 8888: `nginx/app.conf`
+
+#### Docker configuration
+
+There are two volumes in `docker-compose.yml` with the configurations. By default both 443 and 8888 ports will be available, but **use only TLS configuration for production deployments**.
+
+```yml
+- ./nginx/app.conf:/etc/nginx/conf.d/app.conf
+- ./nginx/app_tls.conf:/etc/nginx/conf.d/app_tls.conf
+```
 
 ### Environment variables
 

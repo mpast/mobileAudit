@@ -77,11 +77,12 @@ def home(request):
     scans = Scan.objects.all().order_by('id')
     scans_data = {}
     for scan in scans:
+        scans_data[scan.id] = {
+            'findings': get_findings_by_severity(scan.id),
+            'antivirus' : ''
+        }
         try:
-            scans_data[scan.id] = {
-                'findings': get_findings_by_severity(scan.id),
-                'antivirus': VirusTotalScan.objects.filter(scan=scan.id).latest('created_on'),
-            }
+            scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
             print("error")
 
@@ -195,11 +196,12 @@ def app(request, id):
     scans = Scan.objects.filter(app=app.id)
     scans_data = {}
     for scan in scans:
+        scans_data[scan.id] = {
+            'findings': get_findings_by_severity(scan.id),
+            'antivirus' : ''
+        }
         try:
-            scans_data[scan.id] = {
-                'findings': get_findings_by_severity(scan.id),
-                'antivirus': VirusTotalScan.objects.filter(scan=scan.id).latest('created_on'),
-            }
+            scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
             print("error")
     return render(request, 'app.html', {

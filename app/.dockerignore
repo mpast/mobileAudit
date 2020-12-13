@@ -1,0 +1,12 @@
+# Ignore the logs
+app/logs/
+
+# Ignore apk directory
+app/media/apk
+
+# Ignoring git folders
+.git
+
+# Ignore certificates
+nginx/ssl/nginx.crt
+nginx/ssl/nginx.key

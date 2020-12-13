@@ -1,4 +1,4 @@
-FROM python:3.9.0-buster@sha256:8829824d85665db842f33f6a71960b00f3e3b329f297e499e24c748e29ae19f9
+FROM python:3.9.1-buster@sha256:a921fa94f8b3052977bbcb8d2e1223f988e746aaa4652f099203331f4417fb68
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
@@ -12,7 +12,7 @@ RUN apt-get update && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.1.0
+ENV JADX_VERSION 1.2.0
 
 RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \

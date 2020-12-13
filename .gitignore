@@ -7,3 +7,5 @@ app/static/fontawesome_5/
 app/static/rest_framework/
 app/static/admin/
 app/static/drf-yasg/
+*.key
+*.crt
