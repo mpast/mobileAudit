@@ -77,6 +77,11 @@ if (env("ENV") == "PROD"):
             "PORT": env("SQL_PORT", "5432"),
         }
     }
+    # Security
+    SESSION_COOKIE_SECURE = env("SESSION_COOKIE_SECURE", False)
+    SECURE_HSTS_PRELOAD = env("SECURE_HSTS_PRELOAD", False)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
+    SECURE_BROWSER_XSS_FILTER = env("SECURE_BROWSER_XSS_FILTER", True)
 else:
     DATABASES = {
         'default': {
@@ -103,6 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {
@@ -136,8 +142,7 @@ USE_L10N = True
 USE_TZ = True
 TIME_ZONE = 'Europe/Madrid'
 
-# Fontawesome
-#FONTAWESOME_5_CSS = '/static/fontawesome_5/css/fontawesome.css'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440
 
 # OTHER TOOLS
 CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
@@ -145,13 +150,13 @@ CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 MALWAREDB_ENABLED = env('MALWAREDB_ENABLED', True)
 MALWAREDB_URL = env('MALWAREDB_URL', 'https://www.malwaredomainlist.com/mdlcsv.php')
 
-VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', True)
+VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')
 VIRUSTOTAL_FILE_URL = env('VIRUSTOTAL_FILE_URL', 'https://www.virustotal.com/gui/file/')
 VIRUSTOTAL_API_URL_V3 = env('VIRUSTOTAL_API_URL_V3', 'https://www.virustotal.com/api/v3/')
 VIRUSTOTAL_URL_V2 = env('VIRUSTOTAL_API_URL_V2', 'https://www.virustotal.com/vtapi/v2/file/')
 VIRUSTOTAL_API_KEY = env('VIRUSTOTAL_API_KEY', '')
-VIRUSTOTAL_UPLOAD = env('VIRUSTOTAL_UPLOAD', True)
+VIRUSTOTAL_UPLOAD = env('VIRUSTOTAL_UPLOAD', False)
 
 DEFECTDOJO_ENABLED = env('DEFECTDOJO_ENABLED', False)
 DEFECTDOJO_URL = env('DEFECTDOJO_URL', 'http://defectdojo:8080/finding/')
@@ -170,8 +175,16 @@ SESSION_COOKIE_NAME = 'session'
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_COOKIE_AGE = 60*60*60 #expires at 60 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True
+
+# ----------Celery--------------------------
+CELERY = {
+    'CELERY_BROKER_URL': env('CELERY_BROKER_URL','amqp://guest:guest@rabbitmq:5672'),
+    'CELERY_IMPORTS': ('worker.tasks', ),
+    'CELERY_TASK_SERIALIZER': 'json',
+    'CELERY_RESULT_SERIALIZER': 'json',
+    'CELERY_ACCEPT_CONTENT': ['json'],
+}
 
 LOGGING = {
     'version': 1,

@@ -53,10 +53,10 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 - [x] User authentication and user management
 - [x] API v1 with Swagger and ReDoc
 - [x] TLS
+- [ ] Dynamic page reload
+- [ ] LDAP integration
 - [ ] Export to Markdown
 - [ ] Export to CSV
-- [ ] LDAP integration
-- [ ] Dynamic page reload
 
 ### Integrations
 
@@ -92,10 +92,23 @@ Once the application has launched, you can test the application by navigating to
 
 ![Dashboard](app/static/dashboard.png)
 
-Also, there is a TLS version running in port 443, so you can test the application by navigating to: https://localhost/ to access the dashboard.
+Also, there is a TLS version using `docker-compose.prod.yaml` running in port 443
+
+
+To use it, execute
+```sh
+  docker-compose -f docker-compose.prod.yaml up
+```
+
+Then, you can test the application by navigating to: https://localhost/ to access the dashboard.
 
 For more information, see [TLS](#tls)
 
+To stop and remove the containers, run
+
+```sh
+docker-compose down
+```
 
 In each of the scans, it would have the following information:
 
@@ -140,8 +153,8 @@ REST API integration with Swagger and ReDoc.
 
 * A JSON view of the API specification at `/swagger.json`
 * A YAML view of the API specification at `/swagger.yaml`
-* A swagger-ui view of your API specification at `/swagger/`
-* A ReDoc view of your API specification at `/redoc/`
+* A swagger-ui view of the API specification at `/swagger/`
+* A ReDoc view of the API specification at `/redoc/`
 
 ### TLS
 
@@ -161,10 +174,14 @@ openssl req -x509 -nodes -days 1 -newkey rsa:4096 -subj "/C=ES/ST=Madrid/L=Madri
 
 #### Docker configuration
 
-There are two volumes in `docker-compose.yml` with the configurations. By default both 443 and 8888 ports will be available, but **use only TLS configuration for production deployments**.
+By default, there is a volume in `docker-compose.yml` with the configuration with 8888 available
 
 ```yml
 - ./nginx/app.conf:/etc/nginx/conf.d/app.conf
+```
+
+** In production environment** use `docker-compose.prod.yaml` with port 443
+```yml
 - ./nginx/app_tls.conf:/etc/nginx/conf.d/app_tls.conf
 ```
 

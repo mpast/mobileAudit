@@ -45,14 +45,14 @@ def set_hash_app(scan):
     return scan
 
 
-def analyze_apk(scan):
-    # Enable log output
-    #show_logging(level=logging.DEBUG)
+def analyze_apk(scan_id):
+    # Start the APK analysis
     global APK_PATH
     global DECOMPILE_PATH
-    APK_PATH = settings.BASE_DIR + scan.apk.url
-    DECOMPILE_PATH = os.path.splitext(APK_PATH)[0]
     try:
+        scan = Scan.objects.get(pk=scan_id)
+        APK_PATH = settings.BASE_DIR + scan.apk.url
+        DECOMPILE_PATH = os.path.splitext(APK_PATH)[0]
         scan.status = 'In Progress'
         scan.progress = 3
         scan.save()

@@ -1,5 +1,6 @@
 .env
 app/logs/*
+rabbitmq/logs/*
 app/media/*
 *.sqlite3
 **/__pycache__
