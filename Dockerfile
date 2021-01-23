@@ -18,9 +18,15 @@ RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \
     unzip "jadx-$JADX_VERSION.zip"
 
+# Copy the docker entrypoints
+COPY entrypoint/web_entrypoint.sh \
+	 entrypoint/worker_entrypoint.sh /
+
+RUN chown 1001:1001 /web_entrypoint.sh /worker_entrypoint.sh && \
+	chmod u+x /web_entrypoint.sh /worker_entrypoint.sh
+
 # Create a directory in the container in /app
 RUN mkdir /app
-
 # Copy all to /app directory
 COPY . /app
 
@@ -34,6 +40,7 @@ RUN pip install -r requirements.txt
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV PYTHONIOENCODING utf8
+
 
 # Set the permissions to the user
 RUN chown -R 1001:1001 /app

@@ -4,6 +4,7 @@ from django.urls import reverse
 from app.forms import ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
 from app import analysis
 from app.models import *
+from app.worker.tasks import task_create_scan
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
@@ -13,6 +14,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.template.loader import get_template
 import pdfkit, requests
+
 
 def user_register(request):
     form = SignUpForm(request.POST or None)
@@ -174,8 +176,8 @@ def create_scan(request, app_id = ''):
             scan.user = request.user
             scan.status = 'In Progress'
             scan.progress = 1
-            form_saved = scan.save()
-            analysis.start_analysis(scan)
+            scan_id = scan.save()
+            task_create_scan.delay(scan.id)
             messages.success(request, 'Form submission successful')
             return redirect(reverse('scan', kwargs={"id": scan.id}))
     else:
