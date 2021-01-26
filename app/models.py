@@ -81,6 +81,7 @@ class Scan(models.Model):
     target_sdk_version = models.CharField(max_length=50, blank=True, null=True)
     effective_target_sdk_version = models.CharField(max_length=50, blank=True, null=True)
     manifest = models.TextField(blank=True, null=True)
+    task = models.CharField(max_length=50, blank=True, null=True)
     created_on = models.DateTimeField(auto_now_add=True, null=True)
     updated_on = models.DateTimeField(auto_now=True, null=True)
 

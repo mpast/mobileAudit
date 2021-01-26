@@ -3,6 +3,7 @@ app/logs/*
 rabbitmq/logs/*
 app/media/*
 *.sqlite3
+*.sqlite
 **/__pycache__
 app/static/fontawesome_5/
 app/static/rest_framework/
