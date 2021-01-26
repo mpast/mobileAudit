@@ -178,13 +178,12 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 
 # ----------Celery--------------------------
-CELERY = {
-    'CELERY_BROKER_URL': env('CELERY_BROKER_URL','amqp://guest:guest@rabbitmq:5672'),
-    'CELERY_IMPORTS': ('worker.tasks', ),
-    'CELERY_TASK_SERIALIZER': 'json',
-    'CELERY_RESULT_SERIALIZER': 'json',
-    'CELERY_ACCEPT_CONTENT': ['json'],
-}
+CELERY_BROKER_URL = env('CELERY_BROKER_URL','amqp://guest:guest@rabbitmq:5672')
+CELERY_IMPORTS =  ('app.worker.tasks', )
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND','db+sqlite:///rabbitmq/results.sqlite')
 
 LOGGING = {
     'version': 1,
