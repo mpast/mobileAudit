@@ -176,8 +176,10 @@ def create_scan(request, app_id = ''):
             scan.user = request.user
             scan.status = 'In Progress'
             scan.progress = 1
-            scan_id = scan.save()
-            task_create_scan.delay(scan.id)
+            scan.save()
+            task_id = task_create_scan.delay(scan.id)
+            scan.task = task_id.id
+            scan.save()
             messages.success(request, 'Form submission successful')
             return redirect(reverse('scan', kwargs={"id": scan.id}))
     else:

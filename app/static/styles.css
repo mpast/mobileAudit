@@ -1,0 +1,161 @@
+.table {
+    table-layout: fixed;
+}
+
+td {
+    word-wrap: break-word;
+}
+
+.wrapper {
+    display: block;
+}
+
+.sidebar-left {
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: -255px;
+    z-index: 999;
+    background: #343a40;
+    color: #fff;
+    transition: all .3s;
+    box-shadow: 3px 3px 3px rgba(51, 51, 51, 0.5);
+    text-align: left;
+}
+
+.sidebar-left.active {
+    left: 0;
+}
+
+.overlay {
+    display: none;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(51, 51, 51, 0.7);
+    z-index: 998;
+    opacity: 0;
+    transition: all .5s ease-in-out;
+}
+
+.overlay.active {
+    display: block;
+    opacity: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.open-menu {
+    position: fixed;
+    top: 50px;
+    left: 15px;
+    z-index: 997;
+    box-shadow: 3px 3px 3px rgba(51, 51, 51, 0.2);
+}
+
+.dismiss {
+    width: 35px;
+    height: 35px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    transition: all .3s;
+    background: #444;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 35px;
+    cursor: pointer;
+}
+
+.dismiss:hover,
+.dismiss:focus {
+    background: #555;
+    color: #fff;
+}
+
+.sidebar-left ul.menu-elements {
+    padding: 10px 0;
+    border-bottom: 1px solid #444;
+    transition: all .3s;
+}
+
+.sidebar-left ul li a {
+    display: block;
+    padding: 10px 20px;
+    border: 0;
+    color: #fff;
+}
+
+.sidebar-left ul li a:hover,
+.sidebar-left ul li a:focus,
+.sidebar-left ul li.active a:hover,
+.sidebar-left ul li.active a:focus {
+    outline: 0;
+    background: #555;
+    color: #fff;
+}
+
+.sidebar-left ul li a i {
+    margin-right: 5px;
+}
+
+.sidebar-left ul li.active a {
+    background: #444;
+    color: #fff;
+}
+
+.sidebar-left ul ul a {
+    background: #444;
+    padding-left: 30px;
+    font-size: 14px;
+}
+
+.sidebar-left ul ul li.active a {
+    background: #555;
+}
+
+.sidebar-left a[data-toggle="collapse"] {
+    position: relative;
+}
+
+.sidebar-left .dropdown-toggle::after {
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+}
+
+.sidebar-left ul li a span {
+    margin-left: 3px;
+}
+
+.to-top {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+}
+
+.sidebar-title h3 a {
+    color: white;
+    margin: 5px;
+}
+
+.rotate svg {
+    -moz-transition: all 0.5s linear;
+    -webkit-transition: all 0.5s linear;
+    transition: all 0.5s linear;
+}
+
+.rotate.down {
+    color: green;
+}
+
+.rotate.down svg {
+    -ms-transform: rotate(90deg);
+    -moz-transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+    transform: rotate(90deg);
+}

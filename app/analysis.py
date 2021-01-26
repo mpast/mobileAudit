@@ -16,11 +16,6 @@ logger = logging.getLogger('app')
 APK_PATH = ""
 DECOMPILE_PATH = ""
 
-def start_analysis(scan):
-    t = threading.Thread(target=analyze_apk, args=(scan,))
-    t.start()
-    return scan
-
 def set_hash_app(scan):
     if not scan.sha256:
         f = scan.apk.open('rb')
@@ -45,7 +40,7 @@ def set_hash_app(scan):
     return scan
 
 
-def analyze_apk(scan_id):
+def analyze_apk(task, scan_id):
     # Start the APK analysis
     global APK_PATH
     global DECOMPILE_PATH
@@ -56,23 +51,31 @@ def analyze_apk(scan_id):
         scan.status = 'In Progress'
         scan.progress = 3
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
         a = APK(APK_PATH)
         scan = set_hash_app(scan)
         scan.status = 'Getting info of apk'
         scan.progress = 5
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
         scan = get_info_apk(a, scan)
         scan.status = 'Getting info of certificates'
         scan.progress = 10
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
         certificates = get_info_certificate(a, scan)
         if (settings.VIRUSTOTAL_ENABLED):
             scan.status = 'Getting info of VT'
             scan.progress = 15
             scan.save()
+            task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
             logger.debug(scan.status)
             report = get_report_virus_total(scan, scan.sha256)
             if (not report and settings.VIRUSTOTAL_UPLOAD):
@@ -82,12 +85,16 @@ def analyze_apk(scan_id):
         scan.status = 'Decompiling'
         scan.progress = 20
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
         decompile_jadx()
         if (a.get_app_icon()):
             update_icon(scan, DECOMPILE_PATH + '/resources/' + a.get_app_icon())
         scan.status = 'Finding vulnerabilities'
         scan.progress = 40
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         scan.save()
         logger.debug(scan.status)
         findings = get_tree_dir(scan)
@@ -95,12 +102,16 @@ def analyze_apk(scan_id):
         scan.progress = 100
         scan.finished_on = datetime.now()
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
     except Exception as e:
         scan.progress = 100
         scan.status = "Error"
         scan.finished_on = datetime.now()
         scan.save()
+        task.update_state(state = 'STARTED',
+                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         import traceback
         traceback.print_exc()
         print(e)
