@@ -892,6 +892,8 @@
                         setTimeout(updateProgress, 10000, progressUrl);
                     }
                 });
+            }).catch(function(e) {
+                setTimeout(updateProgress, 10000, progressUrl);
             });
         }
         var progressUrl = '{% url "scan_state" scan.id %}';
