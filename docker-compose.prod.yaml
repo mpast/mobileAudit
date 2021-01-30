@@ -16,6 +16,7 @@ services:
   web:
     build: 
       context: ./
+    image: mobile_audit
     env_file:
       - ./.env.example
     entrypoint: [ '/web_entrypoint.sh' ]
@@ -52,8 +53,7 @@ services:
       - web
     restart: on-failure
   worker:
-    build: 
-      context: ./
+    image: mobile_audit
     env_file:
       - ./.env.example
     entrypoint: [ '/worker_entrypoint.sh' ]
