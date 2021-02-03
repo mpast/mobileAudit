@@ -3,6 +3,7 @@ from app.serializers import *
 from app import analysis
 from rest_framework import viewsets, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
+from app.worker.tasks import task_create_scan
 
 class IsUserOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -25,8 +26,10 @@ class ScanViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
     
     def perform_create(self, serializer):
-        obj = serializer.save(user=self.request.user, status='In progress', progress=1)
-        analysis.start_analysis(obj)
+        scan = serializer.save(user=self.request.user, status='In progress', progress=1)
+        task_id = task_create_scan.delay(scan.id)
+        scan.task = task_id.id
+        scan.save()
  
 class FindingViewSet(viewsets.ModelViewSet):
     serializer_class = FindingSerializer
@@ -35,4 +38,3 @@ class FindingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         obj = serializer.save(user=self.request.user)
-

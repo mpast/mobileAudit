@@ -29,6 +29,8 @@ Django Web application for performing Static Analysis and detecting malware in A
 
 - **db**: PostgreSQL 13
 - **nginx**: Nginx 1.18.0
+- **rabbitmq**: RabbitMQ 3.8.11
+- **worker**: Celery 5.0.5
 - **web**: Mobile Audit App
 
 ### Docker Base images
@@ -37,6 +39,7 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 
 | Image |  Tags | Base |
 |--------------------|-------|---------------------|
+| mpast/mobile_audit | 1.3.0 | python:3.9.1-buster |
 | mpast/mobile_audit | 1.2.0 | python:3.9.1-buster |
 | mpast/mobile_audit | 1.1.0 | python:3.9.0-buster |
 | mpast/mobile_audit | 1.0.0 | python:3.9.0-buster |
