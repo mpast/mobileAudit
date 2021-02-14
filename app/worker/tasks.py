@@ -15,7 +15,10 @@ def scan_state(request, id):
     scan = Scan.objects.get(pk=id)
     job = AsyncResult(scan.task)
     try:
-        data = job.info or job.result
+        if (job.info):
+            data = job.info
+        else:
+            data = job.result
     except Exception as e:
         print(e)
     return HttpResponse(json.dumps(data), content_type='application/json')
