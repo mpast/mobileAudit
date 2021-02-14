@@ -18,12 +18,21 @@ RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \
     unzip "jadx-$JADX_VERSION.zip"
 
-# Copy the docker entrypoints
-COPY entrypoint/web_entrypoint.sh \
-	 entrypoint/worker_entrypoint.sh /
+# Create user
+ARG uid=1000
+ARG gid=1000
+ARG user=app
+ARG group=app
 
-RUN chown 1001:1001 /web_entrypoint.sh /worker_entrypoint.sh && \
-	chmod u+x /web_entrypoint.sh /worker_entrypoint.sh
+RUN groupadd -g ${gid} ${group} \
+        && useradd -u ${uid} -g ${group} -s /bin/sh ${user}
+
+# Copy entrypoints
+COPY entrypoint/web_entrypoint.sh \
+    entrypoint/worker_entrypoint.sh /
+
+RUN chown ${uid}:${gid} /web_entrypoint.sh /worker_entrypoint.sh && \
+        chmod u+x /web_entrypoint.sh /worker_entrypoint.sh
 
 # Create a directory in the container in /app
 RUN mkdir /app
@@ -33,6 +42,7 @@ COPY . /app
 # Use /app as the workdir
 WORKDIR /app
 
+
 # Install python dependencies
 RUN pip install -r requirements.txt
 
@@ -41,11 +51,18 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV PYTHONIOENCODING utf8
 
+# Logs
+RUN mkdir app/logs
+RUN touch app/logs/debug.log
+
+# RabbitMQ directory
+RUN mkdir rabbitmq
 
 # Set the permissions to the user
-RUN chown -R 1001:1001 /app
+RUN chown -R ${uid}:${gid} /app
 
-# Run the container as 1001 user
-USER 1001
+# Run the container as non-root user
+USER ${uid}
+
 # Expose the 8000 port
 EXPOSE 8000

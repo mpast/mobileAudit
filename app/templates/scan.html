@@ -872,24 +872,28 @@
         function updateProgress (progressUrl) {
             fetch(progressUrl).then(function(response) {
                 response.json().then(function(data) {
-                    if (data.current == data.total) {
-                        return
-                    }
-                    if (data.current >= 5) {
-                        if (['None','', null].indexOf($("#scan-apk-name").text()) != -1) {
-                            updateScanInfo(scan_id)
+                    try {
+                        if (data.current == data.total) {
+                            return
                         }
-                    }
-                    // update the progress bar
-                    $("#progress-bar").width(data.current + "%")
-                    $("#progress-bar").text(data.current + "%")
-                    $("#progress-status").text(data.status)
-                    if (data.current < 20) {
-                        setTimeout(updateProgress, 3000, progressUrl);
-                    } else if (data.current < 40) {
+                        if (data.current >= 5) {
+                            if (['None','', null].indexOf($("#scan-apk-name").text()) != -1) {
+                                updateScanInfo(scan_id)
+                            }
+                        }
+                        // update the progress bar
+                        $("#progress-bar").width(data.current + "%")
+                        $("#progress-bar").text(data.current + "%")
+                        $("#progress-status").text(data.status)
+                        if (data.current < 20) {
+                            setTimeout(updateProgress, 3000, progressUrl);
+                        } else if (data.current < 40) {
+                            setTimeout(updateProgress, 5000, progressUrl);
+                        } else {
+                            setTimeout(updateProgress, 10000, progressUrl);
+                        }
+                    } catch(e) {
                         setTimeout(updateProgress, 5000, progressUrl);
-                    } else {
-                        setTimeout(updateProgress, 10000, progressUrl);
                     }
                 });
             }).catch(function(e) {
