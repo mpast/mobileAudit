@@ -12,8 +12,8 @@
         <tr>
             <th style="width: 5%;">ID</th>
             <th style="width: 6%;">Name</th>
-            <th style="width: 10%;">Created by</th>
-            <th style="width: 10%;">Description</th>
+            <th style="width: 6%;">Created by</th>
+            <th style="width: 14%;">Description</th>
             <th style="width: 80%;">Scans</th>
             <th></th>
         </tr>
@@ -48,8 +48,8 @@
                         <tr>
                             <td><a href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
                             <td>{{ scan.description }}</td>
-                            <td>{{ scan.apk.version_code }}</td>
-                            <td>{{ scan.apk.created_on }}</td>
+                            <td>{{ scan.version_code }}</td>
+                            <td>{{ scan.created_on }}</td>
                             <td>{{ scan.status }}</td>
                             <td>{{ scan.progress }} %</td>
                             {% for id, scan_data in scans_data.items %} {% if id == scan.id %} {% if settings.VIRUSTOTAL_ENABLED %} {% if scan_data.antivirus.malicious > 0 %}

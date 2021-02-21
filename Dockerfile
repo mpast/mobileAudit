@@ -52,11 +52,11 @@ ENV LANGUAGE en_US:en
 ENV PYTHONIOENCODING utf8
 
 # Logs
-RUN mkdir app/logs
+RUN mkdir -p app/logs
 RUN touch app/logs/debug.log
 
 # RabbitMQ directory
-RUN mkdir rabbitmq
+RUN mkdir -p rabbitmq
 
 # Set the permissions to the user
 RUN chown -R ${uid}:${gid} /app

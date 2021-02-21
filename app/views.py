@@ -1,10 +1,6 @@
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
-from app.forms import ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
-from app import analysis
-from app.models import *
-from app.worker.tasks import task_create_scan
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
@@ -13,8 +9,14 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.http import HttpResponse
 from django.template.loader import get_template
-import pdfkit, requests
+import pdfkit, requests, logging
+from app.forms import ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
+from app import analysis
+from app.models import *
+from app.worker.tasks import task_create_scan
+from app.integration import get_report_virus_total
 
+logger = logging.getLogger('app')
 
 def user_register(request):
     form = SignUpForm(request.POST or None)
@@ -86,7 +88,7 @@ def home(request):
         try:
             scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
-            print("error")
+            logger.error(e)
 
     return render(request, 'home.html', {
         'apps': apps,
@@ -207,7 +209,7 @@ def app(request, id):
         try:
             scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
-            print("error")
+            logger.error(e)
     return render(request, 'app.html', {
         'app': app,
         'scans': scans,
@@ -267,7 +269,7 @@ def findings(request, scan_id=''):
                     if (push_dojo and settings.DEFECTDOJO_ENABLED):
                         analysis.create_finding_on_dojo(f)
             except Exception as e:
-                print("error" + str(e))
+                logger.error(e)
         if (edit and ok):
             messages.success(request, 'Edited successfully')
     else:
@@ -366,7 +368,7 @@ def patterns(request):
                         p.active = False
                     p.save()
             except Exception as e:
-                print(e)
+                logger.error(e)
     patterns = Pattern.objects.all()
     return render(request, 'patterns.html', {
         'patterns': patterns,
@@ -389,7 +391,7 @@ def malware(request):
 @login_required
 def update_virustotal(request, scan_id):
     scan = Scan.objects.get(pk=scan_id)
-    analysis.get_report_virus_total(scan, scan.sha256)
+    get_report_virus_total(scan, scan.sha256)
     return redirect(reverse('scan', kwargs={"id": scan_id}))
 
 def append_pdf(pdf, output):

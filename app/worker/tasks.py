@@ -3,7 +3,9 @@ from app.models import Scan
 from celery import shared_task, current_task
 from celery.result import AsyncResult
 from django.http import HttpResponse
-import json
+import json, logging
+
+logger = logging.getLogger('app')
 
 @shared_task
 def task_create_scan(scan):
@@ -20,5 +22,5 @@ def scan_state(request, id):
         else:
             data = job.result
     except Exception as e:
-        print(e)
+        logger.error(e)
     return HttpResponse(json.dumps(data), content_type='application/json')
