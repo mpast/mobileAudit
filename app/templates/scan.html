@@ -893,11 +893,11 @@
                             setTimeout(updateProgress, 10000, progressUrl);
                         }
                     } catch(e) {
-                        setTimeout(updateProgress, 5000, progressUrl);
+                        //setTimeout(updateProgress, 5000, progressUrl);
                     }
                 });
             }).catch(function(e) {
-                setTimeout(updateProgress, 10000, progressUrl);
+                //setTimeout(updateProgress, 10000, progressUrl);
             });
         }
         var progressUrl = '{% url "scan_state" scan.id %}';
