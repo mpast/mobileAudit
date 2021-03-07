@@ -26,6 +26,7 @@ router = routers.DefaultRouter()
 router.register(r'app', api.ApplicationViewSet)
 router.register(r'scan', api.ScanViewSet)
 router.register(r'finding', api.FindingViewSet)
+router.register(r'permission', api.PermissionViewSet)
 
 # App paths
 urlpatterns = [
