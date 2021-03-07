@@ -27,9 +27,9 @@ Django Web application for performing Static Analysis and detecting malware in A
 
 ![Schema](app/static/schema.png)
 
-- **db**: PostgreSQL 13
-- **nginx**: Nginx 1.18.0
-- **rabbitmq**: RabbitMQ 3.8.11
+- **db**: PostgreSQL 13.2
+- **nginx**: Nginx 1.19.7
+- **rabbitmq**: RabbitMQ 3.8.12
 - **worker**: Celery 5.0.5
 - **web**: Mobile Audit App
 

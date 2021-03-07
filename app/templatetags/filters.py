@@ -1,4 +1,7 @@
 from django.template.defaulttags import register
+import logging
+
+logger = logging.getLogger('app')
 
 @register.filter
 def lookup(dictionary, key):
@@ -12,6 +15,5 @@ def active(request, pattern):
         if re.search(pattern, request.path):
             return 'active'
     except Exception as e:
-        print(pattern)
-        print(request.path)
+        logger.error(e)
     return ''
