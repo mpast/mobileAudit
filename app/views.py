@@ -195,11 +195,21 @@ def create_scan(request, app_id = ''):
     return render(request, 'create_scan.html', {
         'form': form,
     })
+@login_required
+def delete_scan(request, scan_id=''):
+    if request.method == 'POST':
+        scan = Scan.objects.get(pk=scan_id)
+        if (scan.user == request.user):
+            scan.delete()
+            messages.success(request, 'Removed successfully')
+            return redirect('home')
+    messages.warning(request, 'Removed successfully')
+    return redirect('home')
 
 @login_required
 def app(request, id):
     app = Application.objects.get(pk=id)
-    scans = Scan.objects.filter(app=app.id)
+    scans = Scan.objects.filter(app=app.id).order_by('id')
     scans_data = {}
     for scan in scans:
         scans_data[scan.id] = {
