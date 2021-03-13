@@ -80,9 +80,14 @@
                         {% endif %}
                     </div>
                 </div>
-                {% if scan.progress >= 40 %}
                 <br>
-                <a href="{% url 'export' id=scan.id %}" class="btn btn-outline-dark">Export {% fa5_icon 'download' %}</a> {% endif %}
+                <form action="{% url 'delete_scan' scan.id %}" method="post" enctype="multipart/form-data" style="display: inline-block;">
+                    {% csrf_token %}
+                    <button type="submit" class="delete-scan btn btn-danger">Delete {% fa5_icon 'trash-alt' color='white' %}</button>
+                </form>
+                {% if scan.progress >= 40 %}
+                    <a href="{% url 'export' id=scan.id %}" class="btn btn-outline-dark">Export {% fa5_icon 'download' %}</a> 
+                {% endif %}
             </div>
         </div>
         <br>
@@ -932,7 +937,28 @@
         }
         var progressUrl = '{% url "scan_state" scan.id %}';
         updateProgress(progressUrl);
+
     });
-    
+    function fade_alerts() {
+        alerts = document.getElementsByClassName("alert");
+        var i = alerts.length;
+        for (let elem of alerts) {
+            i--;
+            time = 3250+(1000*i);
+            setTimeout(function() {
+                $(elem).fadeOut("slow");
+            }, time);
+        }
+    }
+    window.addEventListener('DOMContentLoaded', (event) => {
+        fade_alerts();
+    });
+    $(document).ready(function() {
+        $('.delete-scan').on('click', function(e) {
+            if (!confirm('Do you really want to delete the scan?')) {
+                e.preventDefault();
+            }
+        });
+    });
 </script>
 {% endblock %}

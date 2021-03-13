@@ -45,6 +45,7 @@ urlpatterns = [
     path('file/<int:id>', views.view_file, name='view_file'),
     path('scan/create', views.create_scan, name='create_scan'),
     path('scan/create/<int:app_id>', views.create_scan, name='create_scan'),
+    path('scan/delete/<int:scan_id>', views.delete_scan, name='delete_scan'),
     path('patterns/', views.patterns, name="patterns"),
     path('permissions/', views.permissions, name="permissions"),
     path('malware/', views.malware, name="malware"),

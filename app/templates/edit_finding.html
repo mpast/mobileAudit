@@ -21,4 +21,21 @@
     {% endfor %}
 </ul>
 {% endif %} {% if finding %}
-<a class="btn btn-sm btn-outline-warning" href="{% url 'finding' id=finding %}">See finding {% fa5_icon 'chevron-right' %}</a> {% endif %} {% endblock %}
+<a class="btn btn-sm btn-outline-warning" href="{% url 'finding' id=finding %}">See finding {% fa5_icon 'chevron-right' %}</a> {% endif %}
+<script type="text/javascript">
+    function fade_alerts() {
+        alerts = document.getElementsByClassName("alert");
+        var i = alerts.length;
+        for (let elem of alerts) {
+            i--;
+            time = 3250+(1000*i);
+            setTimeout(function() {
+                $(elem).fadeOut("slow");
+            }, time);
+        }
+    }
+    window.addEventListener('DOMContentLoaded', (event) => {
+        fade_alerts();
+    });
+</script>
+{% endblock %}

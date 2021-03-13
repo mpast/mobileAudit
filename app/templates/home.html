@@ -7,6 +7,13 @@
 <p id="alert-account" class="alert alert-danger" style="display: none;">To create apps, you must have and account</p>
 <a onclick="$('#alert-account').show()" class="btn btn-outline-primary">New App</a> {% endif %}
 <br> {% if apps %}
+<ul class="messages">
+    {% for message in messages %}
+    <div class="alert alert-success">
+        <strong>{{ message | escape }}</strong>
+    </div>
+    {% endfor %}
+</ul>
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -41,6 +48,9 @@
                             {% endif %}
                             <th style="width: 10%;">Findings</th>
                             <th style="width: 30%;">By Severity</th>
+                            {% if user.is_authenticated %}
+                            <th style="width: 5%;">Delete</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -78,6 +88,14 @@
                                     {% endfor %}
                                 </table>
                             </td>
+                                {% if user.is_authenticated %}
+                                <td>
+                                    <form action="{% url 'delete_scan' scan.id %}" method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <button type="submit" class="delete-scan btn btn-danger">{% fa5_icon 'trash-alt' color='white' %}</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             {% endif %} {% endfor %}
                         </tr>
                         {% endif %} {% endfor %}</tbody>
@@ -90,4 +108,27 @@
         {% endfor %}
     </tbody>
 </table>
+<script type="text/javascript">
+    function fade_alerts() {
+        alerts = document.getElementsByClassName("alert");
+        var i = alerts.length;
+        for (let elem of alerts) {
+            i--;
+            time = 3250+(1000*i);
+            setTimeout(function() {
+                $(elem).fadeOut("slow");
+            }, time);
+        }
+    }
+    window.addEventListener('DOMContentLoaded', (event) => {
+        fade_alerts();
+    });
+    $(document).ready(function() {
+        $('.delete-scan').on('click', function(e) {
+            if (!confirm('Do you really want to delete the scan?')) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
 {% endif %} {% endblock %}
