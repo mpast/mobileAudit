@@ -23,6 +23,8 @@
 
 Django Web application for performing Static Analysis and detecting malware in Android APKs
 
+![App](app/static/app.png)
+
 ### Components
 
 ![Schema](app/static/schema.png)
@@ -39,6 +41,7 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 
 | Image |  Tags | Base |
 |--------------------|-------|---------------------|
+| mpast/mobile_audit | 1.3.6 | python:3.9.2-buster |
 | mpast/mobile_audit | 1.3.0 | python:3.9.1-buster |
 | mpast/mobile_audit | 1.2.0 | python:3.9.1-buster |
 | mpast/mobile_audit | 1.1.0 | python:3.9.0-buster |
