@@ -211,11 +211,15 @@ def app(request, id):
     app = Application.objects.get(pk=id)
     scans = Scan.objects.filter(app=app.id).order_by('id')
     scans_data = {}
+    chart_labels = []
+    chart_data = []
     for scan in scans:
         scans_data[scan.id] = {
             'findings': get_findings_by_severity(scan.id),
             'antivirus' : ''
         }
+        chart_labels.append("Scan #" + str(scan.id) + " - " + scan.description)
+        chart_data.append(scan.findings)
         try:
             scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
@@ -224,6 +228,8 @@ def app(request, id):
         'app': app,
         'scans': scans,
         'scans_data': scans_data,
+        'chart_data': chart_data,
+        'chart_labels': chart_labels,
         'settings': settings,
     })
 
