@@ -1,4 +1,4 @@
-FROM python:3.9.1-buster@sha256:a921fa94f8b3052977bbcb8d2e1223f988e746aaa4652f099203331f4417fb68
+FROM python:3.9.2-buster@sha256:d66a49bd2e3fd942969fa10fd4179076d1fddf78c521e272059ca965a0231e9c
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
