@@ -7,6 +7,7 @@
   - [Components](#components)
   - [Docker Base images](#docker-base-images)
   - [Main features](#main-features)
+  - [Patterns](#patterns)
   - [Integrations](#integrations)
   - [Install](#install)
   - [API v1](#api-v1)
@@ -43,8 +44,6 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 |--------------------|-------|---------------------|
 | mpast/mobile_audit | 1.3.6 | python:3.9.2-buster |
 | mpast/mobile_audit | 1.3.0 | python:3.9.1-buster |
-| mpast/mobile_audit | 1.2.0 | python:3.9.1-buster |
-| mpast/mobile_audit | 1.1.0 | python:3.9.0-buster |
 | mpast/mobile_audit | 1.0.0 | python:3.9.0-buster |
 
 ### Main features
@@ -63,6 +62,16 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 - [ ] LDAP integration
 - [ ] Export to Markdown
 - [ ] Export to CSV
+
+### Patterns
+
+The application has an engine with different rules and patterns that are used though the findings scanning phase to detect vulnerabilities and/or malicious code into the apk.
+
+These can be activated and deactivated in `/patterns`
+
+![Patterns](app/static/patterns.png)
+
+Note: some of the hardcoded patterns are from [apkleaks](https://github.com/dwisiswant0/apkleaks)
 
 ### Integrations
 
