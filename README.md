@@ -84,7 +84,7 @@ It checks if there has been an scan of the APK and extract all its information. 
 
 It is possible to upload the findings to the defect manager.
 
-#### MalwareDB
+#### MalwareDB & MaltrailDB
 
 It checks in the database if there are URLs in the APK that are related with Malware.
 
@@ -208,8 +208,9 @@ All the environment variables are in a `.env` file, there is an `.env.example` w
 ```py
 CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 
-MALWAREDB_ENABLED = env('MALWAREDB_ENABLED', True)
+MALWARE_ENABLED = env('MALWARE_ENABLED', True)
 MALWAREDB_URL = env('MALWAREDB_URL', 'https://www.malwaredomainlist.com/mdlcsv.php')
+MALTRAILDB_URL = env('MALTRAILDB_URL', 'https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt')
 
 VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')

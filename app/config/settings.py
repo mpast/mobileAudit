@@ -57,6 +57,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.config.wsgi'
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 SECRET_KEY = env("SECRET_KEY", "<SECRET_KEY>")
 
@@ -151,8 +152,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440
 # OTHER TOOLS
 CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 
-MALWAREDB_ENABLED = env('MALWAREDB_ENABLED', True)
+MALWARE_ENABLED = env('MALWARE_ENABLED', True)
 MALWAREDB_URL = env('MALWAREDB_URL', 'https://www.malwaredomainlist.com/mdlcsv.php')
+MALTRAILDB_URL = env('MALTRAILDB_URL', 'https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt')
 
 VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')
