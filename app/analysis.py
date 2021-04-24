@@ -261,7 +261,7 @@ def find_patterns(i, prev_line, line, name, dir, scan):
                         if "schemas.android.com" in line:
                             break
                         url = urllib.parse.urlsplit(match_str)
-                        if (settings.MALWAREDB_ENABLED):
+                        if (settings.MALWARE_ENABLED):
                             m = Malware.objects.get(url__icontains=url.netloc)
                     except Exception as e:
                         logger.error("not found " + match_str)
