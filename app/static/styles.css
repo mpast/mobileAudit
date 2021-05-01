@@ -78,7 +78,7 @@ td {
 .sidebar-left ul.menu-elements {
     padding: 10px 0;
     border-bottom: 1px solid #444;
-    transition: all .3s;
+    transition: all 0.3s ease-in-out;
 }
 
 .sidebar-left ul li a {
@@ -153,9 +153,20 @@ td {
     color: green;
 }
 
-.rotate.down svg {
+.rotate.down i {
     -ms-transform: rotate(90deg);
     -moz-transform: rotate(90deg);
     -webkit-transform: rotate(90deg);
     transform: rotate(90deg);
+}
+
+.btn {
+    margin: 10px 0px;
+    margin-right: 10px;
+    padding: 7px 10px 7px 10px !important;
+}
+
+.btn-round {
+    border-radius: 5px;
+    padding: 4px 8px !important;
 }

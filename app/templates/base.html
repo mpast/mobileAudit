@@ -12,15 +12,11 @@
 
     <title>Mobile Audit</title>
     {% bootstrap_css %}
-
-    <link rel="stylesheet" type="text/css" href="{% static 'datatable/css/dataTables.bootstrap4.min.css' %}">
-    <style>
-        .btn {
-            margin: 10px 0px;
-            margin-right: 10px;
-        }
-    </style>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'datatable/css/mdb.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'datatable/css/addons/datatables.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark navbar-toggleable-md">
         <a class="navbar-brand" href="{% url 'home' %}">
             <img src="{% static 'icon.png' %}" width="30" height="30" class="d-inline-block align-top" alt=""> Mobile Audit</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,9 +95,11 @@
     </nav>
 </head>
 
-<body>{% bootstrap_javascript jquery='full' %}
-    <script type="text/javascript" charset="utf8" src="{% static 'datatable/js/jquery.dataTables.min.js' %}"></script>
-    <script type="text/javascript" charset="utf8" src="{% static 'datatable/js/dataTables.bootstrap4.min.js' %}"></script>
+<body>
+    <script type="text/javascript" charset="utf8" src="{% static 'datatable/js/popper.min.js' %}"></script>
+    {% bootstrap_javascript jquery='full' %}
+   <script type="text/javascript" charset="utf8" src="{% static 'datatable/js/mdb.min.js' %}"></script>
+   <script type="text/javascript" charset="utf8" src="{% static 'datatable/js/addons/datatables.min.js' %}"></script>  
     <br>
     <div class="container-fluid">
         {% block content %} {% endblock %}

@@ -51,7 +51,7 @@
     <tbody>
         {% for scan in scans %}
         <tr>
-            <td><a href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
+            <td><a class="btn btn-outline-secondary btn-round" href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
             <td>{{ scan.description }} </td>
             <td>{{ scan.apk_name }} </td>
             <td>{{ scan.version_code }}</td>

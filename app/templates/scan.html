@@ -1,8 +1,7 @@
 {% extends 'base.html' %} {% load fontawesome_5 %} {% load static %} {% block content %}
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
 <div id="wrapper">
     <!-- Sidebar -->
-    <nav class="sidebar sidebar-left bg-dark">
+    <nav class="sidebar sidebar-left side-nav bg-dark">
 
         <!-- close sidebar menu -->
         <div class="dismiss">
@@ -14,45 +13,45 @@
         </div>
 
         <ul class="list-unstyled menu-elements">
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#info">{% fa5_icon 'mobile-alt' %} <span>App Info</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#security">{% fa5_icon 'lock' %} <span>Security info</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#permissions">{% fa5_icon 'id-card' %} <span>Permissions</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#activities">{% fa5_icon 'running' %} <span>Activities</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#components">{% fa5_icon 'sitemap' %} <span>Components</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#findings">{% fa5_icon 'bug' %} <span>Findings</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#best_practices">{% fa5_icon 'clipboard-check' %} <span>Security Best Practices</span></a>
             </li>
             {% if settings.VIRUSTOTAL_ENABLED %}
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#antivirus">{% fa5_icon 'shield-alt' %} <span>Antivirus</span></a>
             </li>
             {% endif %}
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#certificates">{% fa5_icon 'certificate' %} <span>Certificates</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#strings">{% fa5_icon 'font' %} <span>Strings</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#files">{% fa5_icon 'file' %} <span>Files</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="#databases">{% fa5_icon 'database' %} <span>Databases</span></a>
             </li>
-            <li>
+            <li class="waves-effect">
                 <a class="scroll-link" href="{% url 'export' id=scan.id %}">{% fa5_icon 'download' %} <span>Export</span></a>
             </li>
         </ul>
@@ -72,11 +71,11 @@
                     <p><b>Description: </b> {{ scan.description }}</p>
                     <p><b>Created by: </b> {{ scan.user.username }}</p>
                     <p><b>Status:</b> <span id="progress-status">{{ scan.status }}</span></p>
-                    <div class="progress">
+                    <div class="progress" style="height:20px">
                         {% if scan.progress == 100 %}
-                        <div class="progress-bar bg-success progress-bar-striped" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
+                        <div class="progress-bar bg-success" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
                         {% else %}
-                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
+                        <div class="progress-bar bg-primary" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
                         {% endif %}
                     </div>
                 </div>
@@ -544,8 +543,7 @@
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenu" id="bulk_edit">
                             <li style="margin: 15px;">
                                 <label style="display: block" for="severity">Severity</label>
-                                <select name="severity" id="severity">
-                                    <option value="">Choose Severity</option>
+                                <select name="severity" id="severity" class="mdb-select md-form" searchable="Choose Severity">
                                     <option value="NO">None</option>
                                     <option value="LO">Low</option>
                                     <option value="ME">Medium</option>
@@ -553,8 +551,7 @@
                                     <option value="CR">Critical</option>
                                 </select>
                                 <label style="display: block" for="status">Status</label>
-                                <select name="status" id="status">
-                                    <option value="">Choose Status</option>
+                                <select name="status" id="status" class="mdb-select md-form" searchable="Choose Status">
                                     <option value="VF">Verified</option>
                                     <option value="FP">False Positive</option>
                                     <option value="TP">True Positive</option>
@@ -578,9 +575,9 @@
                             <tr>
                                 <th style="width: 4%;"><input id="id_select_all" name="select_all" type="checkbox"/></th>
                                 <th style="width: 5%;">ID</th>
-                                <th style="width: 8%;">Finding</th>
+                                <th style="width: 12%;">Finding</th>
                                 <th style="width: 8%;">Number</th>
-                                <th style="width: 88%;">Findings</th>
+                                <th style="width: 80%;">Findings</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -602,13 +599,13 @@
                                                     <th style="width: 2%;"><input id="id_select_findings_category_{{ category.id }}" name="select_category" category="{{ category.id }}" type="checkbox" /></th>
                                                     <th style="width: 6%;">ID</th>
                                                     <th style="width: 8%;">Severity</th>
-                                                    <th style="width: 30%;">File</th>
+                                                    <th style="width: 35%;">File</th>
                                                     <th style="width: 6%;">LN</th>
                                                     <th style="width: 30%;">Line</th>
                                                     <th style="width: 8%;">Status</th>
-                                                    <th style="width: 7%;">CWE</th>
+                                                    <th style="width: 6%;">CWE</th>
                                                     {% if settings.DEFECTDOJO_ENABLED %}
-                                                    <th style="width: 7%;">Dojo ID</th>
+                                                    <th style="width: 5%;">Dojo ID</th>
                                                     {% endif %}
                                                 </tr>
                                             </thead>
@@ -616,7 +613,7 @@
                                                 {% for finding in findings_ordered|lookup:id %}
                                                 <tr>
                                                     <td><input id="{{ finding.id }}" class="finding select_finding_{{ category.id }}" name="{{ finding.id }}" type="checkbox" /></td>
-                                                    <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                                    <td><a class="btn btn-outline-success btn-round"  href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                                                     <td>{{ finding.get_severity_display }}</td>
                                                     <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
                                                     <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
@@ -674,7 +671,7 @@
                                     <tbody>
                                         {% for finding in best_practices %} {% if finding.type.id == practice.id %}
                                         <tr>
-                                            <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                            <td><a class="btn btn-outline-success" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                                             <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
                                             <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
                                             <td>{{ finding.line }}
@@ -743,7 +740,7 @@
                             <td>{{ string.id }}</td>
                             <td>{{ string.type }} </td>
                             <td>{{ string.value }} </td>
-                            <td><a href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
+                            <td><a class="btn btn-outline-success" href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

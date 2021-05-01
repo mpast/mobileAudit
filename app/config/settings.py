@@ -77,6 +77,7 @@ if (env("ENV") == "PROD"):
             "PASSWORD": env("SQL_PASSWORD", "postgres"),
             "HOST": env("SQL_HOST", "db"),
             "PORT": env("SQL_PORT", "5432"),
+            "ATOMIC_REQUESTS": True,
         }
     }
     # Security
