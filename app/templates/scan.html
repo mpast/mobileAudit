@@ -671,7 +671,7 @@
                                     <tbody>
                                         {% for finding in best_practices %} {% if finding.type.id == practice.id %}
                                         <tr>
-                                            <td><a class="btn btn-outline-success" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                                             <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
                                             <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
                                             <td>{{ finding.line }}
@@ -740,7 +740,7 @@
                             <td>{{ string.id }}</td>
                             <td>{{ string.type }} </td>
                             <td>{{ string.value }} </td>
-                            <td><a class="btn btn-outline-success" href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
+                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

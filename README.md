@@ -26,9 +26,28 @@ Django Web application for performing Static Analysis and detecting malware in A
 
 ![App](app/static/app.png)
 
+In each of the scans, it would have the following information:
+
+* Application Info
+* Security Info
+* Components
+* SAST Findings
+* Best Practices Implemented
+* Virus Total Info
+* Certificate Info
+* Strings
+* Databases
+* Files
+
+![App](app/static/scan.png)
+
+For easy access there is a sidebar on the left page of the scan:
+
+![Menu](app/static/menu.png)
+
 ### Components
 
-![Schema](app/static/schema.png)
+![Schema](app/static/architecture.png)
 
 - **db**: PostgreSQL 13.2
 - **nginx**: Nginx 1.19.10
@@ -84,7 +103,7 @@ It checks if there has been an scan of the APK and extract all its information. 
 
 It is possible to upload the findings to the defect manager.
 
-#### MalwareDB & MaltrailDB
+#### MalwareDB & Maltrail
 
 It checks in the database if there are URLs in the APK that are related with Malware.
 
@@ -126,23 +145,6 @@ To stop and remove the containers, run
 docker-compose down
 ```
 
-In each of the scans, it would have the following information:
-
-* Application Info
-* Security Info
-* Components
-* SAST Findings
-* Best Practices Implemented
-* Virus Total Info
-* Certificate Info
-* Strings
-* Databases
-* Files
-
-For easy access there is a sidebar on the left page of the scan:
-
-![Menu](app/static/menu.png)
-
 ### API v1
 
 REST API integration with Swagger and ReDoc.
@@ -151,6 +153,8 @@ REST API integration with Swagger and ReDoc.
 
 * Endpoint to authenticate and get token:
 `/api/v1/auth-token/`
+
+![Auth token](app/static/auth_token.png)
 
 * Once authenticated, use header in all requests:
 `Authorization: Token <ApiKey>`
