@@ -29,7 +29,7 @@
 
         {% for app in apps %}
         <tr>
-            <td><a href="{% url 'app' id=app.id %}">{{ app.id }}</a></td>
+            <td><a class="btn btn-outline-primary btn-round" href="{% url 'app' id=app.id %}">{{ app.id }}</a></td>
             <td>{{ app.name }} </td>
             <td>{{ app.user.username }} </td>
             <td>{{ app.description }} </td>
@@ -56,7 +56,7 @@
                     <tbody>
                         {% for scan in scans %} {% if scan.app.id == app.id %}
                         <tr>
-                            <td><a href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
+                            <td><a class="btn btn-outline-secondary btn-round" href="{% url 'scan' id=scan.id %}"> {{ scan.id }}</a></td>
                             <td>{{ scan.description }}</td>
                             <td>{{ scan.version_code }}</td>
                             <td>{{ scan.created_on }}</td>

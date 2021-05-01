@@ -9,24 +9,21 @@
         <ul class="dropdown-menu" aria-labelledby="dropdownMenu" id="bulk_edit">
             <li style="margin: 15px;">
                 <label style="display: block" for="severity">Severity</label>
-                <select name="severity" id="severity">
-                        <option value="">Choose Severity</option>
-                        <option value="NO">None</option>
-                        <option value="LO">Low</option>
-                        <option value="ME">Medium</option>
-                        <option value="HI">High</option>
-                        <option value="CR">Critical</option>
-                    </select><br/><br/>
-
+                <select name="severity" id="severity" class="mdb-select md-form" searchable="Choose Severity">
+                    <option value="NO">None</option>
+                    <option value="LO">Low</option>
+                    <option value="ME">Medium</option>
+                    <option value="HI">High</option>
+                    <option value="CR">Critical</option>
+                </select>
                 <label style="display: block" for="status">Status</label>
-                <select name="status" id="status">
-                        <option value="">Choose Status</option>
-                        <option value="VF">Verified</option>
-                        <option value="FP">False Positive</option>
-                        <option value="TP">True Positive</option>
-                        <option value="UK">Unknown</option>
-                        <option value="TD">To Do</option>
-                    </select><br><br> {% if settings.DEFECTDOJO_ENABLED %}
+                <select name="status" id="status" class="mdb-select md-form" searchable="Choose Status">
+                    <option value="VF">Verified</option>
+                    <option value="FP">False Positive</option>
+                    <option value="TP">True Positive</option>
+                    <option value="UK">Unknown</option>
+                    <option value="TD">To Do</option>
+                </select><br><br> {% if settings.DEFECTDOJO_ENABLED %}
                 <label>Push to Defect Dojo
                     <input id="id_push_dojo" name="push_dojo" type="checkbox" alt="Select to push to Dojo"/>
                 </label> {% endif %}
@@ -59,7 +56,7 @@
             {% for finding in findings %}
             <tr>
                 <td><input id="{{ finding.id }}" class="finding" name="{{ finding.id }}" type="checkbox" /></td>
-                <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                 <td>{{ finding.name }}</td>
                 <td>{{ finding.get_severity_display }}</td>
                 <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
@@ -116,7 +113,17 @@
                 e.preventDefault();
             }
         });
-        $("#findings").DataTable()
+        $("#findings").DataTable({
+            columnDefs: [{
+                orderable: false,
+                className: 'select-checkbox',
+                targets: 0
+            }],
+            select: {
+                style: 'os',
+                selector: 'td:first-child'
+            }
+        });
     });
 </script>
 {% endblock %}
