@@ -111,16 +111,24 @@ It checks in the database if there are URLs in the APK that are related with Mal
 
 Using Docker-compose:
 
-The provided `docker-compose.yml` file allows you to run the app locally in development. To start the container, run:
+The provided `docker-compose.yml` file allows you to run the app locally in development.
+
+To build the local image and if there are changes to the local Application Dockerfile, you can build the image with:
+
+```sh
+docker-compose build
+```
+
+Then, to start the container, run:
 
 ```sh
 docker-compose up
 ```
 
-If there are changes to the local Application Dockerfile, you can build the image with 
+Optional: run in detached mode (not see the logs)
 
 ```sh
-docker-compose build
+docker-compose up -d
 ```
 
 Once the application has launched, you can test the application by navigating to: http://localhost:8888/ to access the dashboard.
@@ -229,5 +237,7 @@ DEFECTDOJO_URL = env('DEFECTDOJO_URL', 'http://defectdojo:8080/finding/')
 DEFECTDOJO_API_URL = env('DEFECTDOJO_API_URL', 'http://defectdojo:8080/api/v2/')
 DEFECTDOJO_API_KEY = env('DEFECTDOJO_API_KEY', '')
 ```
+
+If you like to contribute, see [Contributing](CONTRIBUTING.md)
 
 ---

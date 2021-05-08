@@ -161,7 +161,7 @@ VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')
 VIRUSTOTAL_FILE_URL = env('VIRUSTOTAL_FILE_URL', 'https://www.virustotal.com/gui/file/')
 VIRUSTOTAL_API_URL_V3 = env('VIRUSTOTAL_API_URL_V3', 'https://www.virustotal.com/api/v3/')
-VIRUSTOTAL_URL_V2 = env('VIRUSTOTAL_API_URL_V2', 'https://www.virustotal.com/vtapi/v2/file/')
+VIRUSTOTAL_API_URL_V2 = env('VIRUSTOTAL_API_URL_V2', 'https://www.virustotal.com/vtapi/v2/file/')
 VIRUSTOTAL_API_KEY = env('VIRUSTOTAL_API_KEY', '')
 VIRUSTOTAL_UPLOAD = env('VIRUSTOTAL_UPLOAD', False)
 

@@ -8,7 +8,6 @@ from app.worker.tasks import task_create_scan
 from rest_framework import viewsets, mixins, status
 from django.db.models import Q
 from django_filters import rest_framework as filters
-#from django_filters.rest_framework import DjangoFilterBackend
 
 class IsUserOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -49,9 +48,9 @@ class FindingViewSet(viewsets.ModelViewSet):
     def scan(self, request, pk=None):
         if (pk != None):
             scan = Scan.objects.get(pk=pk)
-            queryset = Finding.objects.filter(scan=scan)
+            queryset = Finding.objects.filter(scan=scan).order_by('id')
         else:
-            queryset = Finding.objects.all()
+            queryset = Finding.objects.all().order_by('id')
             
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -73,10 +72,9 @@ class PermissionViewSet(viewsets.ModelViewSet):
     def scan(self, request, pk=None):
         if (pk != None):
             scan = Scan.objects.get(pk=pk)
-            queryset = Permission.objects.filter(scan=scan)
+            queryset = Permission.objects.filter(scan=scan).order_by('id')
         else:
-            queryset = Permission.objects.all()
-        print(queryset)    
+            queryset = Permission.objects.all().order_by('id')
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
