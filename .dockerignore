@@ -1,5 +1,6 @@
 # Ignore the logs
 app/logs/
+rabbitmq/logs/
 
 # Ignore apk directory
 app/media/apk

@@ -131,9 +131,9 @@ def get_components_intents(scan_id):
 @login_required
 def scan(request, id):
     scan = Scan.objects.get(pk=id)
-    certificates = Certificate.objects.filter(scan=id)
-    permissions = Permission.objects.filter(scan=id)
-    activities = Activity.objects.filter(scan=id)
+    certificates = Certificate.objects.filter(scan=id).order_by('id')
+    permissions = Permission.objects.filter(scan=id).order_by('id')
+    activities = Activity.objects.filter(scan=id).order_by('id')
     components_intents = get_components_intents(id)
     strings = String.objects.filter(scan=id).order_by('type')
     findings = Finding.objects.filter(scan=id).exclude(severity=Severity.NO).order_by('id')
@@ -141,11 +141,11 @@ def scan(request, id):
     database = DatabaseInfo.objects.filter(scan=scan)
     files = File.objects.filter(scan=scan)
     findings_by_severity = get_findings_by_severity(id)
-    best_practices = Finding.objects.filter(scan=id, severity=Severity.NO)
-    all_practices = Pattern.objects.filter(default_severity=Severity.NO)
+    best_practices = Finding.objects.filter(scan=id, severity=Severity.NO).order_by('id')
+    all_practices = Pattern.objects.filter(default_severity=Severity.NO).order_by('id')
     try:
         antivirus_scan = VirusTotalScan.objects.filter(scan=scan).latest('created_on')
-        antivirus = Antivirus.objects.filter(virus_scan=antivirus_scan)
+        antivirus = Antivirus.objects.filter(virus_scan=antivirus_scan).order_by('id')
     except Exception:
         antivirus_scan = False
         antivirus = False
@@ -154,7 +154,7 @@ def scan(request, id):
         'permissions': permissions,
         'findings': findings,
         'certificates': certificates,
-        'categories': Pattern.objects.all(),
+        'categories': Pattern.objects.all().order_by('id'),
         'findings_ordered': findings_by_category,
         'findings_by_severity': findings_by_severity,
         'all_practices': all_practices,
