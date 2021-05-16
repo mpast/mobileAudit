@@ -16,6 +16,10 @@ class CweModelChoiceField(ModelChoiceField):
     def label_from_instance(self, obj):
         return "CWE #%s - %s" % (obj.cwe, obj.description)
 
+class RiskModelChoiceField(ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "OWASP M%s - %s" % (obj.risk, obj.description)
+
 class SignUpForm(UserCreationForm):
     first_name = forms.CharField(max_length=100, help_text='Last Name')
     last_name = forms.CharField(max_length=100, help_text='Last Name')
@@ -48,6 +52,7 @@ class ApplicationForm(forms.ModelForm):
 class FindingForm(forms.ModelForm):
     scan = ScanModelChoiceField(queryset=Scan.objects.all())
     cwe = CweModelChoiceField(queryset=Cwe.objects.all())
+    risk = RiskModelChoiceField(queryset=Risk.objects.all())
     class Meta:   
         model = Finding
-        fields = ('scan', 'name', 'description', 'severity', 'status', 'path', 'line_number', 'line', 'snippet', 'cwe', 'mitigation', 'defectdojo_id')
+        fields = ('scan', 'name', 'description', 'severity', 'status', 'path', 'line_number', 'line', 'snippet', 'cwe', 'risk', 'mitigation', 'defectdojo_id')

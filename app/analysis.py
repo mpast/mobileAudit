@@ -244,7 +244,6 @@ def get_tree_dir(scan):
 
 def find_patterns(i, prev_line, line, name, dir, scan):
     patterns = Pattern.objects.filter(active=True)
-    findings = list()
     url = ''
     m = ''
     for p in patterns:
@@ -301,11 +300,11 @@ def find_patterns(i, prev_line, line, name, dir, scan):
                     severity = p.default_severity,
                     mitigation = p.default_mitigation,
                     cwe = p.default_cwe,
+                    risk = p.default_risk,
                     user = scan.user
                 )
                 finding.save()
                 scan.findings = int(scan.findings) + 1
-                findings.append(finding)
                 scan.save()
                 if (type != ''):
                     s = String(type = type, value = match_str, scan = scan, finding = finding)
@@ -319,7 +318,6 @@ def find_patterns(i, prev_line, line, name, dir, scan):
         except Exception as e:
             logger.debug(e)
             
-    return findings
             
 def get_lines(finding='', path=''):
     formatter = HtmlFormatter(linenos=False, cssclass="source")

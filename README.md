@@ -71,10 +71,11 @@ Image is based on python buster. Link to [Docker Hub image](https://hub.docker.c
 - [x] Uses Docker for easy deployment in multiplatform environment
 - [x] Extract all information of the APK
 - [x] Analyze all the source code searching for weaknesses
-- [x] All findings are categorized and follows CWE standards
-- [x] Also highlight the Best Practices in Secure Android Implementation in the APK
-- [x] The findings can be edited and the false positives can be triaged and deleted
-- [x] All scan results can be exported to PDF
+- [x] All findings are categorized and follows **CWE standards**
+- [x] All findings are categorized and include **Mobile Top 10 Risk**
+- [x] Also highlight the **Best Practices in Secure Android Implementation** in the APK
+- [x] The findings can be edited and the **false positives can be triaged and deleted**
+- [x] All scan results can be **exported to PDF**
 - [x] User authentication and user management
 - [x] API v1 with Swagger and ReDoc
 - [x] TLS
@@ -93,7 +94,14 @@ These can be activated and deactivated in `/patterns`
 
 Note: some of the hardcoded patterns are from [apkleaks](https://github.com/dwisiswant0/apkleaks)
 
-### Integrations
+### Models
+The application has an created models for each of the entities of the scans' information to be able to create relations an abtain the best conclusions for each of the apks.
+
+![Models](app/static/models_snippet.png)
+
+To see the whole model schema, go to [models](app/static/models.png)
+
+### Integrations
 
 #### Virus Total (API v3)
 

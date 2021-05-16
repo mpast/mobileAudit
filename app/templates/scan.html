@@ -575,9 +575,9 @@
                             <tr>
                                 <th style="width: 4%;"><input id="id_select_all" name="select_all" type="checkbox"/></th>
                                 <th style="width: 5%;">ID</th>
-                                <th style="width: 12%;">Finding</th>
-                                <th style="width: 8%;">Number</th>
-                                <th style="width: 80%;">Findings</th>
+                                <th style="width: 9%;">Finding</th>
+                                <th style="width: 7%;">Number</th>
+                                <th style="width: 85%;">Findings</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -604,6 +604,7 @@
                                                     <th style="width: 30%;">Line</th>
                                                     <th style="width: 8%;">Status</th>
                                                     <th style="width: 6%;">CWE</th>
+                                                    <th style="width: 6%;">Risk</th>
                                                     {% if settings.DEFECTDOJO_ENABLED %}
                                                     <th style="width: 5%;">Dojo ID</th>
                                                     {% endif %}
@@ -615,15 +616,16 @@
                                                     <td><input id="{{ finding.id }}" class="finding select_finding_{{ category.id }}" name="{{ finding.id }}" type="checkbox" /></td>
                                                     <td><a class="btn btn-outline-success btn-round"  href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                                                     <td>{{ finding.get_severity_display }}</td>
-                                                    <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                                    <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
+                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
                                                     <td>{{ finding.line }}</td>
                                                     <td>{{ finding.get_status_display }}</td>
-                                                    <td><a href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                                                    <td><a class="link" href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                                                    <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
                                                     {% if settings.DEFECTDOJO_ENABLED %}
                                                     <td>
                                                         {% if finding.defectdojo_id > 0 %}
-                                                        <a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
+                                                        <a class="link" href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
                                                     </td>
                                                     {% endif %}
                                                 </tr>
@@ -672,8 +674,8 @@
                                         {% for finding in best_practices %} {% if finding.type.id == practice.id %}
                                         <tr>
                                             <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
-                                            <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                            <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
+                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
                                             <td>{{ finding.line }}
                                             </td>
                                         </tr>
@@ -709,7 +711,7 @@
                             {% if file.type == 'html' %}
                             <td>{{ file.name }}</td>
                             {% else %}
-                            <td><a href="{% url 'view_file' id=file.id %}" target="_blank">{{ file.name }} </a></td>
+                            <td><a class="link" href="{% url 'view_file' id=file.id %}" target="_blank">{{ file.name }} </a></td>
                             {% endif %}
                             <td>{{ file.type }} </td>
                         </tr>

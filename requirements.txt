@@ -14,3 +14,4 @@ drf-yasg==1.20.0
 Celery==5.0.5
 django-filter==2.4.0
 sqlalchemy==1.4.12
+django-extensions==3.1.3
