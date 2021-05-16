@@ -178,7 +178,7 @@ def create_finding_on_dojo(finding):
         'active': True,
         #'verified': verified,
         'mitigation': finding.mitigation if finding.mitigation != '' else 'N/A',
-        #'references': references,
+        'references': finding.risk.reference,
         #'build_id' : build,
         'line' : finding.line_number,
         'file_path' : finding.path,

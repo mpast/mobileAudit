@@ -170,3 +170,8 @@ td {
     border-radius: 5px;
     padding: 4px 8px !important;
 }
+
+.link {
+    color: #a6c !important;
+    font-weight: bold;
+}

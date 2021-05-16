@@ -46,6 +46,7 @@
                 <th style="width: 6%;">LN</th>
                 <th style="width: 25%;">Line</th>
                 <th style="width: 8%;">Status</th>
+                <th style="width: 7%;">Risk</th>
                 <th style="width: 7%;">CWE</th>
                 {% if settings.DEFECTDOJO_ENABLED %}
                 <th style="width: 7%;">Dojo ID</th>
@@ -59,11 +60,12 @@
                 <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
                 <td>{{ finding.name }}</td>
                 <td>{{ finding.get_severity_display }}</td>
-                <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
+                <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
                 <td>{{ finding.line }}</td>
                 <td>{{ finding.get_status_display }}</td>
-                <td><a href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                <td><a class="link" href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
                 {% if settings.DEFECTDOJO_ENABLED %}
                 <td>
                     {% if finding.defectdojo_id > 0 %}

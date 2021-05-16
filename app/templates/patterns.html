@@ -25,19 +25,20 @@
                 <th style="width: 3%;"><input id="id_select_all" name="select_all" type="checkbox" /></th>
                 <th style="width: 6%;">ID</th>
                 <th style="width: 10%;">Pattern</th>
-                <th style="width: 30%;">Description</th>
-                <th style="width: 30%;">Mitigation</th>
+                <th style="width: 25%;">Description</th>
+                <th style="width: 25%;">Mitigation</th>
                 <th style="width: 6%;">Severity</th>
                 <th style="width: 6%;">Active</th>
                 <th style="width: 6%;">Status</th>
                 <th style="width: 7%;">CWE</th>
+                <th style="width: 7%;">Risk</th>
             </tr>
         </thead>
         <tbody>
             {% for pattern in patterns %}
             <tr>
                 <td><input id="{{ pattern.id }}" class="pattern" name="{{ pattern.id }}" type="checkbox" /></td>
-                <td><a href="">{{ pattern.id }}</a></td>
+                <td>{{ pattern.id }}</td>
                 <td>{{ pattern.default_name }}</td>
                 <td>{{ pattern.default_description }}</td>
                 <td>{{ pattern.default_mitigation }}</td>
@@ -49,7 +50,8 @@
                 <td>No</td>
                 <td>{% fa5_icon 'exclamation-circle' color='red' %}</td>
                 {% endif %}
-                <td><a href="https://cwe.mitre.org/data/definitions/{{finding.cwe.cwe}}.html" target="_blank">{{ pattern.default_cwe.cwe }} </a></td>
+                <td><a class="link" href="https://cwe.mitre.org/data/definitions/{{finding.cwe.cwe}}.html" target="_blank">{{ pattern.default_cwe.cwe }} </a></td>
+                <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
             </tr>
             {% endfor %}
         </tbody>

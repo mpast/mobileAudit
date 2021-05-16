@@ -91,9 +91,17 @@ class Cwe(models.Model):
     created_on = models.DateTimeField(auto_now_add=True, null=True)
     updated_on = models.DateTimeField(auto_now=True, null=True)
 
+class Risk(models.Model):
+    risk = models.IntegerField(primary_key=True)
+    description = models.TextField()
+    reference = models.TextField()
+    created_on = models.DateTimeField(auto_now_add=True, null=True)
+    updated_on = models.DateTimeField(auto_now=True, null=True)
+
 class Pattern(models.Model):
     id = models.AutoField(primary_key=True)
     default_cwe = models.ForeignKey(Cwe, on_delete=models.CASCADE)
+    default_risk = models.ForeignKey(Risk, on_delete=models.CASCADE, null=True)
     default_name = models.TextField()
     default_description = models.TextField(blank=True)
     default_severity = models.CharField(
@@ -127,6 +135,7 @@ class Finding(models.Model):
     description = models.TextField()
     mitigation = models.TextField(blank=True, null=True)
     cwe = models.ForeignKey(Cwe, on_delete=models.CASCADE)
+    risk = models.ForeignKey(Risk, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     defectdojo_id = models.IntegerField(blank=True, default=0)
     created_on = models.DateTimeField(auto_now_add=True, null=True)

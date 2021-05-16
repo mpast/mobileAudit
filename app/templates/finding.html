@@ -15,7 +15,11 @@
     </tr>
     <tr>
         <th>CWE</th>
-        <td><a href="{{ settings.CWE_URL }}{{finding.cwe.cwe}}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+        <td><a class="link" href="{{ settings.CWE_URL }}{{finding.cwe.cwe}}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+    </tr>
+    <tr>
+        <th>OWASP TOP 10 Mobile Risk</th>
+        <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
     </tr>
     <tr>
         <th>Finding</th>
@@ -31,11 +35,11 @@
     </tr>
     <tr>
         <th>File</th>
-        <td><a href="{% url 'finding_view_file' id=finding.id %}">{{ finding.path }}</a></td>
+        <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}">{{ finding.path }}</a></td>
     </tr>
     <tr>
         <th>Line Number</th>
-        <td><a href="{% url 'finding_view_file' id=finding.id %}#finding">{{ finding.line_number }}</a></td>
+        <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding">{{ finding.line_number }}</a></td>
     </tr>
     <tr>
         <th>Line</th>
