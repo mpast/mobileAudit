@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   db:
-    image: postgres:13.2@sha256:5cfcfb0516ddd317109e2746a462b1dc398d152936640a2b69284629f48dc288
+    image: postgres:13.4@sha256:97e5e91582e89514277912d4b7c95bceabdede3482e32395bcb40099abd9c506
     env_file:
       - ./.env.example
     environment:
@@ -28,7 +28,7 @@ services:
       - db
     restart: on-failure
   nginx:
-    image: nginx:1.19.10@sha256:75a55d33ecc73c2a242450a9f1cc858499d468f077ea942867e662c247b5e412
+    image: nginx:1.21.3@sha256:853b221d3341add7aaadf5f81dd088ea943ab9c918766e295321294b035f3f3e
     ports:
       - "443:443"
     volumes:
@@ -39,8 +39,7 @@ services:
       - web
     restart: on-failure
   rabbitmq:
-    image: rabbitmq:3.8.14-management-alpine@sha256:7248e0d63eb59364b1b8e0456580450ff8061f9365d344ab211a4ce7b544886f
-    env_file:
+    image: rabbitmq:3.9.5@sha256:3b3f7b55be78e1b3c7330671ffc3f5e3670f66f040a4a429109a7f56c90464dc    env_file:
       - ./.env.example
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
