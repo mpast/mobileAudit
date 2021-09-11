@@ -1,4 +1,4 @@
-FROM python:3.9.4-buster@sha256:79a631c93960c5919f27f3403e734ec19b130008370a5f902141bcff2e6d6f4c
+FROM python:3.9.7-buster@sha256:79a631c93960c5919f27f3403e734ec19b130008370a5f902141bcff2e6d6f4c
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
@@ -43,8 +43,9 @@ COPY . /app
 WORKDIR /app
 
 
-# Install python dependencies
-RUN pip install -r requirements.txt
+# Upgrade pip and install python dependencies
+RUN pip install --upgrade pip \
+	&& pip install -r requirements.txt
 
 # Encoding configuration
 ENV LANG en_US.UTF-8
