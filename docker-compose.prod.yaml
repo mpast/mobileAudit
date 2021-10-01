@@ -39,7 +39,8 @@ services:
       - web
     restart: on-failure
   rabbitmq:
-    image: rabbitmq:3.9.5@sha256:3b3f7b55be78e1b3c7330671ffc3f5e3670f66f040a4a429109a7f56c90464dc    env_file:
+    image: rabbitmq:3.8.14-management@sha256:c7e1e3c34f1a6a5c089723763f04dc4c483d12f2fabb2fe48faee6f3d3998c69
+    env_file:
       - ./.env.example
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
