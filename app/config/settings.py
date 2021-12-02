@@ -64,7 +64,7 @@ SECRET_KEY = env("SECRET_KEY", "<SECRET_KEY>")
 
 DEBUG = int(env("DEBUG", 0))
 
-ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS", "localhost").split(" ")
+ALLOWED_HOSTS = tuple(env("DJANGO_ALLOWED_HOSTS", ['web','app','localhost','127.0.0.1']))
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
