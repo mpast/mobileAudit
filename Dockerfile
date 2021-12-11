@@ -57,7 +57,7 @@ RUN mkdir -p app/logs
 RUN touch app/logs/debug.log
 
 # RabbitMQ directory
-RUN mkdir -p rabbitmq
+RUN mkdir -p rabbitmq/logs
 
 # Set the permissions to the user
 RUN chown -R ${uid}:${gid} /app
