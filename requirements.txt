@@ -11,7 +11,7 @@ uwsgi==2.0.19.1
 Pygments==2.10.0
 djangorestframework==3.12.4
 drf-yasg==1.20.0
-Celery==5.1.2
+Celery==5.2.2
 django-filter==2.4.0
 sqlalchemy==1.4.23
 django-extensions==3.1.3
