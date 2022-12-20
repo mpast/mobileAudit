@@ -6,7 +6,7 @@ RUN apt-get update && \
 	apt-get clean
 
 RUN apt-get update && \
-	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf && \
+	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf libqt5gui5 && \
 	apt-get install -y  && \
 	apt-get clean && \
 	update-ca-certificates -f
