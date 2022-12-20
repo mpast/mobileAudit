@@ -12,7 +12,7 @@ RUN apt-get update && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.2.0
+ENV JADX_VERSION 1.4.5
 
 RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \
