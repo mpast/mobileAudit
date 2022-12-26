@@ -173,7 +173,7 @@ def create_finding_on_dojo(finding):
         'date': finding.created_on.strftime("%Y-%m-%d"),
         #'product': product_id,
         #'engagement': engagement_id,
-        'test': finding.scan.defectdojo_id,
+        'test': finding.scan.defectdojo_id if finding.scan.defectdojo_id else 1,
         'impact': "N/A",
         'active': True,
         #'verified': verified,
@@ -223,8 +223,10 @@ def create_finding_on_dojo(finding):
         response = requests.post(settings.DEFECTDOJO_API_URL + 'findings/', data = json_data, headers = headers, verify = False)
         json_response = response.json()
         logger.debug(json_response)
-        if (json_response['id']):
+        if ('id' in json_response and json_response['id']):
             finding.defectdojo_id = json_response['id']
             finding.save()
+        else:
+            logger.error(json_response)
     except Exception as e:
         logger.error(e)

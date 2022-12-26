@@ -1,7 +1,9 @@
 *.DS_Store
 .env
+.vscode
 app/logs/*
 rabbitmq/logs/*
+nginx/logs/*
 app/media/*
 *.sqlite3
 *.sqlite

@@ -18,7 +18,6 @@ schema_view = get_schema_view(
         license=openapi.License(name="GNU v3"),
     ),
     public=True,
-    url="http://localhost:8888/api/v1/"
 )
 
 # API router
