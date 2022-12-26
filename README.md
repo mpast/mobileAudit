@@ -4,12 +4,16 @@
 
 **MobileAudit** - SAST and Malware Analysis for Android Mobile APKs
 
+- [Mobile Audit](#mobile-audit)
   - [Components](#components)
   - [Docker Base images](#docker-base-images)
   - [Main features](#main-features)
   - [Patterns](#patterns)
-  - [Integrations](#integrations)
-  - [Install](#install)
+  - [Models](#models)
+    - [Virus Total (API v3)](#virus-total-api-v3)
+    - [Defect Dojo (API v2)](#defect-dojo-api-v2)
+    - [MalwareDB \& Maltrail](#malwaredb--maltrail)
+  - [Installation](#installation)
   - [API v1](#api-v1)
     - [Usage](#usage)
     - [Swagger](#swagger)
@@ -49,22 +53,22 @@ For easy access there is a sidebar on the left page of the scan:
 
 ![Schema](app/static/architecture.png)
 
-- **db**: PostgreSQL 13.2
-- **nginx**: Nginx 1.19.10
-- **rabbitmq**: RabbitMQ 3.8.14
-- **worker**: Celery 5.0.5
-- **web**: Mobile Audit App
+- **db**: PostgreSQL 3.11.5
+- **nginx**: Nginx 1.23.3
+- **rabbitmq**: RabbitMQ 3.11.5
+- **worker**: Celery 5.2.2
+- **web**: Mobile Audit App (Django 3.2.16)
 
 ### Docker Base images
 
 Image is based on python buster. Link to [Docker Hub image](https://hub.docker.com/repository/docker/mpast/mobile_audit)
 
 | Image |  Tags | Base |
-|--------------------|-------|---------------------|
-| mpast/mobile_audit | 1.3.8 | python:3.9.4-buster |
-| mpast/mobile_audit | 1.3.6 | python:3.9.2-buster |
-| mpast/mobile_audit | 1.3.0 | python:3.9.1-buster |
-| mpast/mobile_audit | 1.0.0 | python:3.9.0-buster |
+|--------------------|-------|--------------------- |
+| mpast/mobile_audit | 3.0.0 | python:3.9.16-buster |
+| mpast/mobile_audit | 2.2.1 | python:3.9.7-buster  |
+| mpast/mobile_audit | 1.3.8 | python:3.9.4-buster  |
+| mpast/mobile_audit | 1.0.0 | python:3.9.0-buster  |
 
 ### Main features
 
@@ -216,7 +220,7 @@ By default, there is a volume in `docker-compose.yml` with the configuration wit
 - ./nginx/app.conf:/etc/nginx/conf.d/app.conf
 ```
 
-** In production environment** use `docker-compose.prod.yaml` with port 443
+**In a production environment** use `docker-compose.prod.yaml` with port 443
 ```yml
 - ./nginx/app_tls.conf:/etc/nginx/conf.d/app_tls.conf
 ```
@@ -225,7 +229,7 @@ By default, there is a volume in `docker-compose.yml` with the configuration wit
 
 All the environment variables are in a `.env` file, there is an `.env.example` with all the variables needed. Also there are collected in `app/config/settings.py`:
 
-```py
+```python
 CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 
 MALWARE_ENABLED = env('MALWARE_ENABLED', True)
