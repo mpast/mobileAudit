@@ -6,13 +6,13 @@ RUN apt-get update && \
 	apt-get clean
 
 RUN apt-get update && \
-	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf && \
+	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf libqt5gui5 && \
 	apt-get install -y  && \
 	apt-get clean && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.2.0
+ENV JADX_VERSION 1.4.5
 
 RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \

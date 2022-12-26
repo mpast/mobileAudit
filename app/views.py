@@ -88,7 +88,7 @@ def home(request):
         try:
             scans_data[scan.id]['antivirus'] = VirusTotalScan.objects.filter(scan=scan.id).latest('created_on')
         except Exception as e:
-            logger.error(e)
+            logger.debug(e)
 
     return render(request, 'home.html', {
         'apps': apps,
@@ -285,7 +285,7 @@ def findings(request, scan_id=''):
                     if (push_dojo and settings.DEFECTDOJO_ENABLED):
                         analysis.create_finding_on_dojo(f)
             except Exception as e:
-                logger.error(e)
+                logger.debug(e)
         if (edit and ok):
             messages.success(request, 'Edited successfully')
     else:

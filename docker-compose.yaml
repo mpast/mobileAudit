@@ -34,6 +34,7 @@ services:
     volumes:
       - .:/app
       - ./nginx/app.conf:/etc/nginx/conf.d/app.conf
+      - ./nginx/logs:/var/log/nginx
     depends_on:
       - web
     restart: on-failure
