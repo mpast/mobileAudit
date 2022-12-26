@@ -35,6 +35,7 @@ services:
       - .:/app
       - ./nginx/app_tls.conf:/etc/nginx/conf.d/app_tls.conf
       - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
     depends_on:
       - web
     restart: on-failure
