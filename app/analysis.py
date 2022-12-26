@@ -70,7 +70,7 @@ def analyze_apk(task, scan_id):
         task.update_state(state = 'STARTED',
                 meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
-        certificates = get_info_certificate(a, scan)
+        get_info_certificate(a, scan)
         if (settings.VIRUSTOTAL_ENABLED):
             scan.status = 'Getting info of VT'
             scan.progress = 15
@@ -98,7 +98,7 @@ def analyze_apk(task, scan_id):
                 meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         scan.save()
         logger.debug(scan.status)
-        findings = get_tree_dir(scan)
+        get_tree_dir(scan)
         scan.status = 'Finished'
         scan.progress = 100
         scan.finished_on = datetime.now()
@@ -231,9 +231,11 @@ def get_tree_dir(scan):
                 if (extension == '.java' or  extension == '.kt' or extension == '.xml'):
                     try:
                         prev_line = ''
-                        for i, line in enumerate(open(fname, mode="r", encoding="utf-8")):
-                            find_patterns(i + 1, prev_line, line, fname, dir, scan)
-                            prev_line = line
+                        i = 0
+                        f = open(fname, mode="r", encoding="utf-8")
+                        content = f.read()
+                        f.close()
+                        find_patterns(i + 1, prev_line, content, fname, dir, scan)
                     except Exception as e:
                         logger.error('ERROR {} {}'.format(e, fname))
                     if (filename == 'AndroidManifest.xml'):
@@ -241,84 +243,116 @@ def get_tree_dir(scan):
                 else:
                     get_info_file(scan, fname, dir)
 
+def get_position(match):
+    span = match.span()
+    if span[0] == 0:
+        span = list(span)
+        span[0] = 1
+    return tuple(span)
+
+def get_match_lines(content, position):
+    lines = ''
+    c = 0
+    end = False
+    beginline = 0
+    for i, line in enumerate(content.split('\n'), 1):
+        c += len(line) + 1
+        if c >= position[0] and c >= position[1] and not end: # only one line
+            return (i, line)
+        elif c >= position[0] and not end:
+            # multiple lines
+            beginline = i
+            if (c >= position[1]):
+                end = True
+            lines += line + '\n'
+        if c >= position[1] and end:
+            # endline
+            return (beginline, lines)
 
 def find_patterns(i, prev_line, line, name, dir, scan):
     patterns = Pattern.objects.filter(active=True)
     url = ''
     m = ''
     for p in patterns:
-        pattern = re.compile(p.pattern, re.IGNORECASE)  
+        pattern = re.compile(p.pattern, re.MULTILINE)
         try:
-            for match in re.finditer(pattern, line):
-                type = ''
-                match_str = match.group()
-                if (p.id == 8):
-                    type = 'IP'
-                elif (p.id == 9):
-                    type = 'URL'
-                    try:
-                        if "schemas.android.com" in line:
+            for match in pattern.finditer(line):
+                if match.group():
+                    type = ''
+                    match_str = match.group()
+                    if (p.id == 8):
+                        type = 'IP'
+                    elif (p.id == 9):
+                        type = 'URL'
+                        try:
+                            if "schemas.android.com" in line:
+                                break
+                            url = urllib.parse.urlsplit(match_str)
+                            if (settings.MALWARE_ENABLED):
+                                m = Malware.objects.get(url__icontains=url.netloc)
+                        except Exception as e:
+                            logger.error("not found " + match_str)
+                    elif (p.id == 10):
+                        type = 'email'
+                    elif (p.id == 11):
+                        type = 'DNI'
+                    elif (p.id == 12):
+                        type = 'username'
+                    elif (p.id == 13):
+                        type = 'credentials'
+                    elif (p.id == 14):
+                        type = 'sensitive info'
+                    elif (p.id == 15):
+                        type = 'connection'
+                    elif(p.id == 21):
+                        try:
+                            int(match_str, 16)
+                            type = 'hex'
+                        except Exception as e:
                             break
-                        url = urllib.parse.urlsplit(match_str)
-                        if (settings.MALWARE_ENABLED):
-                            m = Malware.objects.get(url__icontains=url.netloc)
-                    except Exception as e:
-                        logger.error("not found " + match_str)
-                elif (p.id == 10):
-                    type = 'email'
-                elif (p.id == 11):
-                    type = 'DNI'
-                elif (p.id == 12):
-                    type = 'username'
-                elif (p.id == 13):
-                    type = 'credentials'
-                elif (p.id == 14):
-                    type = 'sensitive info'
-                elif (p.id == 15):
-                    type = 'connection'
-                elif(p.id == 21):
-                    try:
-                        int(match_str, 16)
-                        type = 'hex'
-                    except Exception as e:
-                        break
-                elif (p.id == 22):
-                    if (base64.b64encode(base64.b64decode(match_str)) != match_str):
-                        break
-                    type = 'base64'
-                finding = Finding(
-                    scan = scan,
-                    path = name.replace(dir, ""),
-                    line_number = i,
-                    line = line,
-                    snippet = prev_line + '\n' + line + '\n' + linecache.getline(name, i + 1),
-                    match = match_str,
-                    status = Status.TD,
-                    type = p,
-                    name = p.default_name,
-                    description = p.default_description,
-                    severity = p.default_severity,
-                    mitigation = p.default_mitigation,
-                    cwe = p.default_cwe,
-                    risk = p.default_risk,
-                    user = scan.user
-                )
-                finding.save()
-                scan.findings = int(scan.findings) + 1
-                scan.save()
-                if (type != ''):
-                    s = String(type = type, value = match_str, scan = scan, finding = finding)
-                    s.save()
-                    if (type == 'URL'):
-                        if (m):
-                            u = Domain(scan = scan, domain = url.netloc, finding = finding, malware = m)
-                        else:
-                            u = Domain(scan = scan, domain = url.netloc, finding = finding)
-                        u.save()
+                    elif (p.id == 22):
+                        if (base64.b64encode(base64.b64decode(match_str)) != match_str):
+                            break
+                        type = 'base64'
+
+                    match_lines = get_match_lines(line, get_position(match))
+                    snippet = match_lines[1]
+                    position = match_lines[0]
+                    if (not snippet):
+                        snippet = line
+                
+                    finding = Finding(
+                        scan = scan,
+                        path = name.replace(dir, ""),
+                        line_number = position,
+                        line = match_str,
+                        snippet = snippet,
+                        match = match_str,
+                        status = Status.TD,
+                        type = p,
+                        name = p.default_name,
+                        description = p.default_description,
+                        severity = p.default_severity,
+                        mitigation = p.default_mitigation,
+                        cwe = p.default_cwe,
+                        risk = p.default_risk,
+                        user = scan.user
+                    )
+                    finding.save()
+                    scan.findings = int(scan.findings) + 1
+                    scan.save()
+                    if (type != ''):
+                        s = String(type = type, value = match_str, scan = scan, finding = finding)
+                        s.save()
+                        if (type == 'URL'):
+                            if (m):
+                                u = Domain(scan = scan, domain = url.netloc, finding = finding, malware = m)
+                            else:
+                                u = Domain(scan = scan, domain = url.netloc, finding = finding)
+                            u.save()
         except Exception as e:
-            logger.debug(e)
-            
-            
+            logger.error(e)
+         
 def get_lines(finding='', path=''):
     formatter = HtmlFormatter(linenos=False, cssclass="source")
     if (finding):
