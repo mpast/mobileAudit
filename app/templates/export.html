@@ -506,17 +506,17 @@
                                 <tbody>
                                     {% for finding in findings_ordered|lookup:id %}
                                     <tr>
-                                        <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                        <td><a href="{% url 'finding' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.id }}</a></td>
                                         <td>{{ finding.get_severity_display }}</td>
-                                        <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                        <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                        <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.path }}</a></td>
+                                        <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank" rel="noopener noreferrer">{{ finding.line_number }}</a></td>
                                         <td>{{ finding.line }}</td>
                                         <td>{{ finding.get_status_display }}</td>
-                                        <td><a href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+                                        <td><a href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank" rel="noopener noreferrer">{{ finding.cwe.cwe }} </a></td>
                                         {% if settings.DEFECTDOJO_ENABLED %}
                                         <td>
                                             {% if finding.defectdojo_id > 0 %}
-                                            <a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
+                                            <a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank" rel="noopener noreferrer">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
                                         </td>
                                         {% endif %}
                                     </tr>
@@ -563,9 +563,9 @@
                             <tbody>
                                 {% for finding in best_practices %} {% if finding.type.id == practice.id %}
                                 <tr>
-                                    <td><a href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
-                                    <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                    <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                    <td><a href="{% url 'finding' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.id }}</a></td>
+                                    <td><a href="{% url 'finding_view_file' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.path }}</a></td>
+                                    <td><a href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank" rel="noopener noreferrer">{{ finding.line_number }}</a></td>
                                     <td>{{ finding.line }}
                                     </td>
                                 </tr>
@@ -601,7 +601,7 @@
                     {% if file.type == 'html' %}
                     <td>{{ file.name }}</td>
                     {% else %}
-                    <td><a href="{% url 'view_file' id=file.id %}" target="_blank">{{ file.name }} </a></td>
+                    <td><a href="{% url 'view_file' id=file.id %}" target="_blank" rel="noopener noreferrer">{{ file.name }} </a></td>
                     {% endif %}
                     <td>{{ file.type }} </td>
                 </tr>
@@ -632,7 +632,7 @@
                     <td>{{ string.id }}</td>
                     <td>{{ string.type }} </td>
                     <td>{{ string.value }} </td>
-                    <td><a href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
+                    <td><a href="{% url 'finding' id=string.finding.id %}" target="_blank" rel="noopener noreferrer">{{ string.finding.id }}</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

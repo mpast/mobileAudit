@@ -67,7 +67,7 @@
                             {% else %}
                             <td> {% fa5_icon 'shield-alt' color='green' %} {{ scan_data.antivirus.malicious }}</td>
                             {% endif %} {% endif %}
-                            <td><a href="{% url 'findings' scan_id=scan.id %}" target="_blank">{{ scan.findings }}</a></td>
+                            <td><a href="{% url 'findings' scan_id=scan.id %}" target="_blank" rel="noopener noreferrer">{{ scan.findings }}</a></td>
                             <td>
                                 <table class="table table-borderless">
                                     {% for severity, number in scan_data.findings.items %}
