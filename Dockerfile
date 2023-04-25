@@ -16,7 +16,7 @@ RUN apt-get update && \
 RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
 
 # Get JADX Tool
-ENV JADX_VERSION 1.4.5
+ENV JADX_VERSION 1.4.7
 
 RUN \
     wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \
