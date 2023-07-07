@@ -8,7 +8,7 @@ androguard==3.4.0a1
 requests==2.31.0
 pdfkit==0.6.1
 uwsgi==2.0.19.1
-Pygments==2.10.0
+Pygments==2.15.0
 djangorestframework==3.12.4
 drf-yasg==1.20.0
 Celery==5.2.2
