@@ -12,9 +12,6 @@ RUN apt-get update && \
 	apt-get clean && \
 	update-ca-certificates -f
 
-# Avoid issue in libqt5gui5 #73
-RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
-
 # Get JADX Tool
 ENV JADX_VERSION 1.4.7
 
