@@ -2,7 +2,7 @@
 .env
 .vscode
 app/logs/*
-rabbitmq/logs/*
+rabbitmq/logs/*.log
 nginx/logs/*
 app/media/*
 *.sqlite3
