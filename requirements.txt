@@ -1,4 +1,4 @@
-django==3.2.23
+django==3.2.25
 psycopg2==2.9.3
 django-bootstrap4==3.0.1
 django-widget-tweaks==1.4.8
