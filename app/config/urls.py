@@ -1,10 +1,8 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from app import views, api
-from django.conf.urls import url
 from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
-from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from app.worker.tasks import scan_state
@@ -58,8 +56,8 @@ urlpatterns = [
     path('api/v1/auth-token/', obtain_auth_token, name='api_token_auth'),
     path('api/v1/', include(router.urls)),
     path('scan_state/<int:id>', scan_state, name="scan_state"),
-    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     
 ]

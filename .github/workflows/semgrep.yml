@@ -2,31 +2,24 @@ name: Semgrep
 
 on:
   pull_request_target: {}
+  workflow_dispatch: {}
   push:
-    branches: ["main"]
-  # Schedule the CI job (this method uses cron syntax):
-  schedule:
-    - cron: '0 0 1 * *' # Sets Semgrep to scan every month
-
+    branches: ["master", "main"]
 jobs:
   semgrep:
-    name: Scan
+    name: semgrep/ci 
     runs-on: ubuntu-latest
 
     container:
-      image: returntocorp/semgrep
+      image: semgrep/semgrep
 
-    # Skip any PR created by dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
-
     steps:
-      # Fetch project source with GitHub Actions Checkout.
       - uses: actions/checkout@v3
-      # Run the "semgrep ci" command on the command line of the docker image.
-      - run: semgrep ci --sarif --output=semgrep.sarif
+      - run: semgrep ci --sarif > semgrep.sarif
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-      # Upload the results to Github Advanced Security
+
       - name: Upload SARIF file for GitHub Advanced Security Dashboard
         uses: github/codeql-action/upload-sarif@v2
         with:
