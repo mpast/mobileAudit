@@ -1,14 +1,10 @@
-FROM python:3.9.16-buster@sha256:5e28891402c02291f65c6652a8abddedcb5af15933e923c07c2670f836243833
+FROM python:3.10-bullseye@sha256:02c7cb92b8f23908de6457f7800c93b84ed8c6e7201da7935443d4c5eca7b381
 
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
 	apt-get install -y ca-certificates-java --no-install-recommends && \
-	apt-get clean
-
-RUN apt-get update && \
 	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf libqt5gui5 && \
-	apt-get install -y  && \
 	apt-get clean && \
 	update-ca-certificates -f
 
