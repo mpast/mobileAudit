@@ -5,6 +5,9 @@ on:
   workflow_dispatch: {}
   push:
     branches: ["master", "main"]
+  schedule:
+    - cron: '30 15 */15 * *' # Sets Semgrep to scan every 15 days.
+
 jobs:
   semgrep:
     name: semgrep/ci 
@@ -15,7 +18,7 @@ jobs:
 
     if: (github.actor != 'dependabot[bot]')
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: semgrep ci --sarif > semgrep.sarif
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
@@ -25,3 +28,7 @@ jobs:
         with:
           sarif_file: semgrep.sarif
         if: always()
+
+
+
+        
