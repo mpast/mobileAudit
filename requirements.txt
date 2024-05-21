@@ -58,7 +58,7 @@ Pygments==2.15.0
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
 pytz==2024.1
-requests==2.31.0
+requests==2.32.0
 ruamel.yaml==0.18.6
 ruamel.yaml.clib==0.2.8
 six==1.16.0
