@@ -161,7 +161,7 @@
                 <table class="table table-bordered">
                     <tr>
                         <th style="width: 30%;">Number of findings</th>
-                        <td><a href="{% url 'findings' scan_id=scan.id %}" target="_blank">{{ scan.findings }}</a></td>
+                        <td><a href="{% url 'findings' scan_id=scan.id %}" target="_blank" rel="noopener noreferrer">{{ scan.findings }}</a></td>
                     </tr>
                     <tr>
                         <th style="width: 30%;">By Severity</th>
@@ -361,7 +361,7 @@
                 <a name="antivirus"></a>
                 <h5 class="card-title">Virus Total Scan</h5>
                 <button class="btn btn-outline-primary" onclick="updateVirusTotal({{ scan.id }})">{% fa5_icon 'redo-alt' %} VT Reload </button> {% if antivirus_scan.link %}
-                <a href="{{ settings.VIRUSTOTAL_FILE_URL }}{{ antivirus_scan.identifier }}" target="_blank" class="btn btn-outline-dark">VT Link {% fa5_icon 'external-link-alt' %}</a> {% endif %}
+                <a href="{{ settings.VIRUSTOTAL_FILE_URL }}{{ antivirus_scan.identifier }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">VT Link {% fa5_icon 'external-link-alt' %}</a> {% endif %}
                 <br>
                 <table class="table table-bordered">
                     <tr>
@@ -532,7 +532,7 @@
             <div class="card-body">
                 <a name="findings"></a>
                 <h5 class="card-title">Findings</h5>
-                <a href="{% url 'create_finding' scan_id=scan.id %}" target="_blank" class="btn btn-outline-info">New Finding</a>
+                <a href="{% url 'create_finding' scan_id=scan.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info">New Finding</a>
                 <p>Number of findings: {{ scan.findings }}</p>
                 <form id="form-findings" action="{% url 'findings' %}" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="scan" value="{{ scan.id }}">
@@ -614,18 +614,18 @@
                                                 {% for finding in findings_ordered|lookup:id %}
                                                 <tr>
                                                     <td><input id="{{ finding.id }}" class="finding select_finding_{{ category.id }}" name="{{ finding.id }}" type="checkbox" /></td>
-                                                    <td><a class="btn btn-outline-success btn-round"  href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
+                                                    <td><a class="btn btn-outline-success btn-round"  href="{% url 'finding' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.id }}</a></td>
                                                     <td>{{ finding.get_severity_display }}</td>
-                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.path }}</a></td>
+                                                    <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank" rel="noopener noreferrer">{{ finding.line_number }}</a></td>
                                                     <td>{{ finding.line }}</td>
                                                     <td>{{ finding.get_status_display }}</td>
-                                                    <td><a class="link" href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
-                                                    <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
+                                                    <td><a class="link" href="{{ settings.CWE_URL }}{{ finding.cwe.cwe }}.html" target="_blank" rel="noopener noreferrer">{{ finding.cwe.cwe }} </a></td>
+                                                    <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank" rel="noopener noreferrer">M{{ pattern.default_risk.risk }} </a></td>
                                                     {% if settings.DEFECTDOJO_ENABLED %}
                                                     <td>
                                                         {% if finding.defectdojo_id > 0 %}
-                                                        <a class="link" href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
+                                                        <a class="link" href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank" rel="noopener noreferrer">{{ finding.defectdojo_id }}</a> {% else %} <span>N/A</span>{% endif %}
                                                     </td>
                                                     {% endif %}
                                                 </tr>
@@ -673,9 +673,9 @@
                                     <tbody>
                                         {% for finding in best_practices %} {% if finding.type.id == practice.id %}
                                         <tr>
-                                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank">{{ finding.id }}</a></td>
-                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank">{{ finding.path }}</a></td>
-                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank">{{ finding.line_number }}</a></td>
+                                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.id }}</a></td>
+                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}" target="_blank" rel="noopener noreferrer">{{ finding.path }}</a></td>
+                                            <td><a class="link" href="{% url 'finding_view_file' id=finding.id %}#finding" target="_blank" rel="noopener noreferrer">{{ finding.line_number }}</a></td>
                                             <td>{{ finding.line }}
                                             </td>
                                         </tr>
@@ -711,7 +711,7 @@
                             {% if file.type == 'html' %}
                             <td>{{ file.name }}</td>
                             {% else %}
-                            <td><a class="link" href="{% url 'view_file' id=file.id %}" target="_blank">{{ file.name }} </a></td>
+                            <td><a class="link" href="{% url 'view_file' id=file.id %}" target="_blank" rel="noopener noreferrer">{{ file.name }} </a></td>
                             {% endif %}
                             <td>{{ file.type }} </td>
                         </tr>
@@ -742,7 +742,7 @@
                             <td>{{ string.id }}</td>
                             <td>{{ string.type }} </td>
                             <td>{{ string.value }} </td>
-                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=string.finding.id %}" target="_blank">{{ string.finding.id }}</a></td>
+                            <td><a class="btn btn-outline-success btn-round" href="{% url 'finding' id=string.finding.id %}" target="_blank" rel="noopener noreferrer">{{ string.finding.id }}</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -1,5 +1,4 @@
 import os
-import logging
 from getenv import env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +64,7 @@ SECRET_KEY = env("SECRET_KEY", "<SECRET_KEY>")
 DEBUG = int(env("DEBUG", 0))
 
 ALLOWED_HOSTS = tuple(env("DJANGO_ALLOWED_HOSTS", ['web','app','localhost','127.0.0.1']))
+CSRF_TRUSTED_ORIGINS=tuple(env("CSRF_TRUSTED_ORIGINS", ['http://web','http://app','http://localhost','http://127.0.0.1']))
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -139,8 +139,6 @@ REST_FRAMEWORK = {
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 

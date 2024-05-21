@@ -50,8 +50,8 @@
                 <td>No</td>
                 <td>{% fa5_icon 'exclamation-circle' color='red' %}</td>
                 {% endif %}
-                <td><a class="link" href="https://cwe.mitre.org/data/definitions/{{finding.cwe.cwe}}.html" target="_blank">{{ pattern.default_cwe.cwe }} </a></td>
-                <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
+                <td><a class="link" href="https://cwe.mitre.org/data/definitions/{{finding.cwe.cwe}}.html" target="_blank" rel="noopener noreferrer">{{ pattern.default_cwe.cwe }} </a></td>
+                <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank" rel="noopener noreferrer">M{{ pattern.default_risk.risk }} </a></td>
             </tr>
             {% endfor %}
         </tbody>

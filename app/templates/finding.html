@@ -15,11 +15,11 @@
     </tr>
     <tr>
         <th>CWE</th>
-        <td><a class="link" href="{{ settings.CWE_URL }}{{finding.cwe.cwe}}.html" target="_blank">{{ finding.cwe.cwe }} </a></td>
+        <td><a class="link" href="{{ settings.CWE_URL }}{{finding.cwe.cwe}}.html" target="_blank" rel="noopener noreferrer">{{ finding.cwe.cwe }} </a></td>
     </tr>
     <tr>
         <th>OWASP TOP 10 Mobile Risk</th>
-        <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank">M{{ pattern.default_risk.risk }} </a></td>
+        <td><a class="link" href="{{ pattern.default_risk.reference }}" target="_blank" rel="noopener noreferrer">M{{ pattern.default_risk.risk }} </a></td>
     </tr>
     <tr>
         <th>Finding</th>
@@ -55,6 +55,6 @@
     </tr>
 </table>
 {% if settings.DEFECTDOJO_ENABLED and finding.defectdojo_id > 0 %}
-<a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank" class="btn btn-outline-dark">DefectDojo{% fa5_icon 'external-link-alt' %}</a> {% endif %}
+<a href="{{ settings.DEFECTDOJO_URL }}{{ finding.defectdojo_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">DefectDojo{% fa5_icon 'external-link-alt' %}</a> {% endif %}
 
 <a class="btn btn-outline-danger" href="{% url 'edit_finding' id=finding.id %}">Edit</a> {% endblock %}
