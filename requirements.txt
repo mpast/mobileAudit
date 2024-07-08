@@ -6,7 +6,7 @@ asttokens==2.4.1
 beautifulsoup4==4.12.3
 billiard==3.6.4.0
 celery==5.2.2
-certifi==2024.2.2
+certifi==2024.7.4
 charset-normalizer==3.3.2
 click==8.1.7
 click-didyoumean==0.3.0
