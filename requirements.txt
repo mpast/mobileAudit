@@ -73,3 +73,4 @@ uWSGI==2.0.22
 vine==5.1.0
 wcwidth==0.2.13
 setuptools==65.5.1
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
