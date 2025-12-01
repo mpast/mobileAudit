@@ -28,7 +28,7 @@ django-widget-tweaks==1.4.8
 djangorestframework==3.12.4
 drf-yasg==1.20.0
 executing==2.0.1
-fonttools==4.49.0
+fonttools==4.61.0
 idna==3.7
 inflection==0.5.1
 ipython==8.22.2
