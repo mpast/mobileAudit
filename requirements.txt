@@ -72,4 +72,4 @@ urllib3==2.6.0
 uWSGI==2.0.22
 vine==5.1.0
 wcwidth==0.2.13
-setuptools==70.0.0
+setuptools==78.1.1
