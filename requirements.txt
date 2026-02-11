@@ -47,7 +47,7 @@ packaging==23.2
 parso==0.8.3
 pdfkit==0.6.1
 pexpect==4.9.0
-pillow==10.3.0
+pillow==12.1.1
 prompt-toolkit==3.0.43
 psycopg2-binary==2.9.9
 psycopg2==2.9.9
