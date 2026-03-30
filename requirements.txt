@@ -54,7 +54,7 @@ psycopg2==2.9.9
 ptyprocess==0.7.0
 pure-eval==0.2.2
 pydot==2.0.0
-Pygments==2.15.0
+Pygments==2.20.0
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
 pytz==2024.1
