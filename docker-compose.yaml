@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   db:
-    image: postgres:16-bullseye@sha256:7174d2a352ad138906e3dc4a28a5d11b5a158180e9bff80beed8c8cc346f874c
+    image: postgres:16-bookworm@sha256:92620daddcd947f8d5ab5ba66e848702fe443d87fed30c4cea8e389fd78dfc55
     env_file:
       - ./.env.example
     environment:
@@ -28,7 +28,7 @@ services:
       - db
     restart: on-failure
   nginx:
-    image: nginx:stable-bullseye@sha256:ee187e563496b690edaab157f89db924cd35fab42631309f4d62957baecf7d6c
+    image: nginx:stable-bookworm@sha256:552e7481ca93ffccd046aa658dbbed22caefbc09c66fa7cd247cbb90b8a5c609
     ports:
       - "8888:8888"
     volumes:
@@ -39,7 +39,7 @@ services:
       - web
     restart: on-failure
   rabbitmq:
-    image: rabbitmq:3.13.0-management@sha256:ba406c7daaef53b59c92a13db37a27d0425579a40c59266d10022a40a8ba7242
+    image: rabbitmq:4.2-management@sha256:a570a0204bbbd357cd7fdac90f9f1b72f644d06dda4c49799a9452e5b9941dfc
     env_file:
       - ./.env.example
     environment:
