@@ -1,19 +1,24 @@
-FROM python:3.10-bullseye@sha256:02c7cb92b8f23908de6457f7800c93b84ed8c6e7201da7935443d4c5eca7b381
+FROM python:3.12-bookworm@sha256:9bed8554e926c07c6f908841d5ee88c33e8df9236b191526bbce81a9062ab43a
 
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
 	apt-get install -y ca-certificates-java --no-install-recommends && \
-	apt-get install -y openjdk-11-jdk p11-kit wkhtmltopdf libqt5gui5 && \
+	apt-get install -y openjdk-17-jdk p11-kit wkhtmltopdf libqt5gui5 wget unzip && \
 	apt-get clean && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.4.7
+ENV JADX_VERSION 1.5.5
 
 RUN \
-    wget "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" && \
-    unzip "jadx-$JADX_VERSION.zip"
+    wget -q "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" -O /tmp/jadx.zip && \
+    mkdir -p /opt/jadx && \
+    unzip -q /tmp/jadx.zip -d /opt/jadx && \
+    chmod 0755 /opt/jadx/bin/jadx /opt/jadx/bin/jadx-gui && \
+    rm /tmp/jadx.zip
+
+ENV PATH="/opt/jadx/bin:${PATH}"
 
 # Create user
 ARG uid=1000
@@ -22,7 +27,10 @@ ARG user=app
 ARG group=app
 
 RUN groupadd -g ${gid} ${group} \
-        && useradd -u ${uid} -g ${group} -s /bin/sh ${user}
+        && useradd --create-home --home-dir /home/${user} \
+            -u ${uid} -g ${group} -s /bin/sh ${user}
+
+ENV HOME=/home/${user}
 
 # Copy entrypoints
 COPY entrypoint/web_entrypoint.sh \

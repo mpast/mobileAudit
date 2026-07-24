@@ -1,9 +1,6 @@
-from androguard.core.bytecodes.apk import APK
-from androguard.core.bytecodes.dvm import DalvikVMFormat
-from androguard.core.analysis.analysis import Analysis
-from androguard.core.androconf import show_logging
+from androguard.core.apk import APK
 from django.conf import settings
-import logging, os, threading, hashlib, re, linecache, base64, urllib
+import logging, os, threading, hashlib, re, linecache, base64, urllib, shutil, signal, subprocess, tempfile
 from app.models import *
 from pygments import highlight
 from pygments.lexers import PythonLexer
@@ -45,6 +42,7 @@ def analyze_apk(task, scan_id):
     # Start the APK analysis
     global APK_PATH
     global DECOMPILE_PATH
+    scan = None
     try:
         scan = Scan.objects.get(pk=scan_id)
         APK_PATH = settings.BASE_DIR + scan.apk.url
@@ -89,7 +87,7 @@ def analyze_apk(task, scan_id):
         task.update_state(state = 'STARTED',
                 meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
-        decompile_jadx()
+        decompile_jadx(APK_PATH, DECOMPILE_PATH)
         if (a.get_app_icon()):
             update_icon(scan, DECOMPILE_PATH + '/resources/' + a.get_app_icon())
         scan.status = 'Finding vulnerabilities'
@@ -107,19 +105,164 @@ def analyze_apk(task, scan_id):
                 meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         logger.debug(scan.status)
     except Exception as e:
-        scan.progress = 100
-        scan.status = "Error"
-        scan.finished_on = datetime.now()
-        scan.save()
-        task.update_state(state = 'STARTED',
-                meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
-        logger.error(e)
+        if scan is not None:
+            scan.progress = 100
+            scan.status = "Error"
+            scan.finished_on = datetime.now()
+            scan.save()
+        logger.exception(e)
+        raise
 
-def decompile_jadx():
-    if (not os.path.isdir(DECOMPILE_PATH)):
-        #execute jadx command
-        os.system('jadx -d {} {}'.format(DECOMPILE_PATH, APK_PATH))
-    # now we have sources/resources decompiled
+
+def _has_decompiled_output(output_path):
+    for directory in ('sources', 'resources'):
+        directory_path = os.path.join(output_path, directory)
+        if not os.path.isdir(directory_path):
+            continue
+        for _, _, files in os.walk(directory_path):
+            if files:
+                return True
+    return False
+
+
+def _cleanup_decompile_output(output_path, marker_path):
+    shutil.rmtree(output_path, ignore_errors=True)
+    try:
+        os.remove(marker_path)
+    except FileNotFoundError:
+        pass
+
+
+def _has_valid_completion_marker(marker_path):
+    try:
+        with open(marker_path, 'rb') as marker:
+            return marker.read() == b'complete\n'
+    except OSError:
+        return False
+
+
+def _write_completion_marker(marker_path):
+    marker_directory = os.path.dirname(marker_path) or '.'
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='w',
+            encoding='utf-8',
+            dir=marker_directory,
+            prefix=os.path.basename(marker_path) + '.',
+            delete=False,
+        ) as marker:
+            temporary_path = marker.name
+            marker.write('complete\n')
+            marker.flush()
+            os.fsync(marker.fileno())
+        os.replace(temporary_path, marker_path)
+    except Exception:
+        if temporary_path is not None:
+            try:
+                os.remove(temporary_path)
+            except FileNotFoundError:
+                pass
+        raise
+
+
+def _capture_output_tail(stream, tail, limit=4000):
+    for chunk in iter(lambda: stream.read(4096), b''):
+        tail.extend(chunk)
+        if len(tail) > limit:
+            del tail[:-limit]
+
+
+def _terminate_process_group(process):
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+def decompile_jadx(apk_path=None, output_path=None, timeout=None):
+    apk_path = apk_path or APK_PATH
+    output_path = output_path or DECOMPILE_PATH
+    timeout = timeout or getattr(settings, 'JADX_TIMEOUT_SECONDS', 900)
+    marker_path = output_path + '.jadx-complete'
+
+    if _has_valid_completion_marker(marker_path) and _has_decompiled_output(output_path):
+        return
+
+    _cleanup_decompile_output(output_path, marker_path)
+    command = ['jadx', '-d', output_path, apk_path]
+    output_tail = bytearray()
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        output_reader = threading.Thread(
+            target=_capture_output_tail,
+            args=(process.stdout, output_tail),
+            daemon=True,
+        )
+        output_reader.start()
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        _terminate_process_group(process)
+        output_reader.join(timeout=5)
+        _cleanup_decompile_output(output_path, marker_path)
+        error_output = bytes(output_tail[-4000:]).decode(
+            'utf-8',
+            errors='replace',
+        ).strip()
+        detail = ': {}'.format(error_output) if error_output else ''
+        raise RuntimeError(
+            'JADX decompilation timed out after {} seconds{}'.format(
+                timeout,
+                detail,
+            )
+        ) from exc
+    except OSError as exc:
+        if 'process' in locals():
+            _terminate_process_group(process)
+        _cleanup_decompile_output(output_path, marker_path)
+        raise RuntimeError('Unable to execute JADX: {}'.format(exc)) from exc
+
+    output_reader.join(timeout=5)
+    error_output = bytes(output_tail[-4000:]).decode(
+        'utf-8',
+        errors='replace',
+    ).strip()
+    if process.returncode not in (0, 3):
+        _cleanup_decompile_output(output_path, marker_path)
+        raise RuntimeError(
+            'JADX decompilation failed with exit code {}: {}'.format(
+                process.returncode,
+                error_output or 'No error output',
+            )
+        )
+
+    if not _has_decompiled_output(output_path):
+        _cleanup_decompile_output(output_path, marker_path)
+        raise RuntimeError(
+            'JADX decompilation produced no source or resource files'
+        )
+
+    if process.returncode == 3:
+        logger.warning(
+            'JADX completed with partial decompilation (exit code 3); '
+            'continuing with usable output. Output tail: %s',
+            error_output or 'No error output',
+        )
+
+    _write_completion_marker(marker_path)
 
 def update_icon(scan, path):
     encoded_string = ''

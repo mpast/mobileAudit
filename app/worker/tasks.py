@@ -23,4 +23,14 @@ def scan_state(request, id):
             data = job.result
     except Exception as e:
         logger.error(e)
-    return HttpResponse(json.dumps(data), content_type='application/json')
+        data = e
+
+    if isinstance(data, BaseException):
+        data = {
+            'current': scan.progress,
+            'total': 100,
+            'status': scan.status,
+            'error': str(data),
+        }
+
+    return HttpResponse(json.dumps(data, default=str), content_type='application/json')
