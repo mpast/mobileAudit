@@ -5,7 +5,6 @@ from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from app.worker.tasks import scan_state
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -55,7 +54,7 @@ urlpatterns = [
     path('accounts/profile/', views.user_profile, name='profile'),
     path('api/v1/auth-token/', obtain_auth_token, name='api_token_auth'),
     path('api/v1/', include(router.urls)),
-    path('scan_state/<int:id>', scan_state, name="scan_state"),
+    path('scan_state/<int:id>', views.scan_state, name="scan_state"),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

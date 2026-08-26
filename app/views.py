@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
 from django.contrib import messages
@@ -7,13 +7,21 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.template.loader import get_template
 import pdfkit, requests, logging
-from app.forms import ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
+from app.access import (
+    can_access_app,
+    can_access_scan,
+    grant_guest_app_access,
+    grant_guest_scan_access,
+    guest_app_ids,
+    guest_scan_ids,
+)
+from app.forms import GuestScanForm, ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
 from app import analysis
 from app.models import *
-from app.worker.tasks import task_create_scan
+from app.worker.tasks import scan_state as get_scan_state, task_create_scan
 from app.integration import get_report_virus_total
 
 logger = logging.getLogger('app')
@@ -77,8 +85,12 @@ def user_profile(request):
     })
 
 def home(request):
-    apps = Application.objects.all().order_by('id')
-    scans = Scan.objects.all().order_by('id')
+    if request.user.is_authenticated:
+        apps = Application.objects.filter(user=request.user).order_by('id')
+        scans = Scan.objects.filter(user=request.user).order_by('id')
+    else:
+        apps = Application.objects.filter(pk__in=guest_app_ids(request)).order_by('id')
+        scans = Scan.objects.filter(pk__in=guest_scan_ids(request)).order_by('id')
     scans_data = {}
     for scan in scans:
         scans_data[scan.id] = {
@@ -128,9 +140,10 @@ def get_components_intents(scan_id):
         components_intents.append((component, intents))
     return components_intents
 
-@login_required
 def scan(request, id):
-    scan = Scan.objects.get(pk=id)
+    scan = get_object_or_404(Scan, pk=id)
+    if not can_access_scan(request, scan):
+        raise Http404
     certificates = Certificate.objects.filter(scan=id).order_by('id')
     permissions = Permission.objects.filter(scan=id).order_by('id')
     activities = Activity.objects.filter(scan=id).order_by('id')
@@ -151,6 +164,7 @@ def scan(request, id):
         antivirus = False
     return render(request, 'scan.html', {
         'scan' : scan,
+        'guest_scan': scan.user_id is None,
         'permissions': permissions,
         'findings': findings,
         'certificates': certificates,
@@ -169,32 +183,52 @@ def scan(request, id):
         'settings': settings,
     })
 
-@login_required
 def create_scan(request, app_id = ''):
+    app = None
+    if app_id:
+        app = get_object_or_404(Application, pk=app_id)
+        if not can_access_app(request, app):
+            raise Http404
     if request.method == 'POST':
-        form = ScanForm(request.POST, request.FILES)
+        form_class = ScanForm if request.user.is_authenticated else GuestScanForm
+        form = form_class(request.POST, request.FILES)
         if form.is_valid():
             scan = form.save(commit=False)
-            scan.user = request.user
+            # Scans attached to a guest app stay session-owned even if the
+            # browser signs in after creating that app.
+            if request.user.is_authenticated and (app is None or app.user_id is not None):
+                scan.user = request.user
+            if app is not None:
+                scan.app = app
             scan.status = 'In Progress'
             scan.progress = 1
             scan.save()
+            if scan.user_id is None:
+                grant_guest_scan_access(request, scan)
             task_id = task_create_scan.delay(scan.id)
             scan.task = task_id.id
             scan.save()
             messages.success(request, 'Form submission successful')
             return redirect(reverse('scan', kwargs={"id": scan.id}))
     else:
+        form_class = ScanForm if request.user.is_authenticated else GuestScanForm
         if (app_id == ''):
-            form = ScanForm()
+            form = form_class()
         else:
-            app = Application.objects.get(pk=app_id)
-            form = ScanForm(initial={'app': app})
-    if (settings.DEFECTDOJO_ENABLED == False):
+            form = form_class(initial={'app': app})
+    if (settings.DEFECTDOJO_ENABLED == False) and 'defectdojo_id' in form.fields:
         form.fields.pop('defectdojo_id')
     return render(request, 'create_scan.html', {
         'form': form,
+        'guest_scan': not request.user.is_authenticated,
     })
+
+
+def scan_state(request, id):
+    scan = get_object_or_404(Scan, pk=id)
+    if not can_access_scan(request, scan):
+        raise Http404
+    return get_scan_state(request, id)
 @login_required
 def delete_scan(request, scan_id=''):
     if request.method == 'POST':
@@ -206,10 +240,14 @@ def delete_scan(request, scan_id=''):
     messages.warning(request, 'Removed successfully')
     return redirect('home')
 
-@login_required
 def app(request, id):
-    app = Application.objects.get(pk=id)
-    scans = Scan.objects.filter(app=app.id).order_by('id')
+    app = get_object_or_404(Application, pk=id)
+    if not can_access_app(request, app):
+        raise Http404
+    scans = Scan.objects.filter(app=app.id)
+    if app.user_id is None:
+        scans = scans.filter(user__isnull=True, pk__in=guest_scan_ids(request))
+    scans = scans.order_by('id')
     scans_data = {}
     chart_labels = []
     chart_data = []
@@ -233,19 +271,22 @@ def app(request, id):
         'settings': settings,
     })
 
-@login_required
 def create_app(request):
     if request.method == 'POST':
         form = ApplicationForm(request.POST)
         if form.is_valid():
             obj = form.save(commit=False)
-            obj.user = request.user
-            form_saved = obj.save()
+            if request.user.is_authenticated:
+                obj.user = request.user
+            obj.save()
+            if not request.user.is_authenticated:
+                grant_guest_app_access(request, obj)
             return redirect(reverse('create_scan', kwargs={"app_id": obj.id}))
     else:
         form = ApplicationForm()
     return render(request, 'create_app.html', {
         'form': form,
+        'guest_app': not request.user.is_authenticated,
     })
 
 @login_required
@@ -406,7 +447,9 @@ def malware(request):
 
 @login_required
 def update_virustotal(request, scan_id):
-    scan = Scan.objects.get(pk=scan_id)
+    scan = get_object_or_404(Scan, pk=scan_id)
+    if not can_access_scan(request, scan):
+        raise Http404
     get_report_virus_total(scan, scan.sha256)
     return redirect(reverse('scan', kwargs={"id": scan_id}))
 
@@ -415,7 +458,9 @@ def append_pdf(pdf, output):
 
 @login_required
 def export(request, id):
-    scan = Scan.objects.get(pk=id)
+    scan = get_object_or_404(Scan, pk=id)
+    if not can_access_scan(request, scan):
+        raise Http404
     t = get_template('export.html')
     certificates = Certificate.objects.filter(scan=id)
     permissions = Permission.objects.filter(scan=id)

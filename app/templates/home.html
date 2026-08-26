@@ -4,8 +4,8 @@
 <p id="alert-model" class="alert alert-danger" style="display: none;">To create apps, you must first create the model</p>
 <a onclick="$('#alert-model').show()" class="btn btn-outline-primary">New App</a> {% else %}
 <a href="{% url 'create_app' %}" class="btn btn-outline-primary">New App</a> {% endif %} {% else %}
-<p id="alert-account" class="alert alert-danger" style="display: none;">To create apps, you must have and account</p>
-<a onclick="$('#alert-account').show()" class="btn btn-outline-primary">New App</a> {% endif %}
+<a href="{% url 'create_app' %}" class="btn btn-outline-primary">New App</a>
+{% endif %}
 <br> {% if apps %}
 <ul class="messages">
     {% for message in messages %}
@@ -31,7 +31,7 @@
         <tr>
             <td><a class="btn btn-outline-primary btn-round" href="{% url 'app' id=app.id %}">{{ app.id }}</a></td>
             <td>{{ app.name }} </td>
-            <td>{{ app.user.username }} </td>
+            <td>{% if app.user %}{{ app.user.username }}{% else %}Guest{% endif %}</td>
             <td>{{ app.description }} </td>
             <td>
                 <table class="table table-striped table-borderless">
@@ -101,7 +101,7 @@
                         {% endif %} {% endfor %}</tbody>
                 </table>
             </td>
-            {% if user.is_authenticated %}
+            {% if user.is_authenticated or not app.user %}
             <td><a href="{% url 'create_scan' app_id=app.id %}" class="btn btn-outline-success">New Scan</a></td>
             {% endif %}
         </tr>

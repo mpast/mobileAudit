@@ -51,9 +51,11 @@
             <li class="waves-effect">
                 <a class="scroll-link" href="#databases">{% fa5_icon 'database' %} <span>Databases</span></a>
             </li>
+            {% if not guest_scan %}
             <li class="waves-effect">
                 <a class="scroll-link" href="{% url 'export' id=scan.id %}">{% fa5_icon 'download' %} <span>Export</span></a>
             </li>
+            {% endif %}
         </ul>
     </nav>
     <!-- End sidebar -->
@@ -69,7 +71,7 @@
                 <h4 class="card-title">Scan</h4>
                 <div id="progress-wrapper">
                     <p><b>Description: </b> {{ scan.description }}</p>
-                    <p><b>Created by: </b> {{ scan.user.username }}</p>
+                    <p><b>Created by: </b> {% if scan.user %}{{ scan.user.username }}{% else %}Guest{% endif %}</p>
                     <p><b>Status:</b> <span id="progress-status">{{ scan.status }}</span></p>
                     <div class="progress" style="height:20px">
                         {% if scan.progress == 100 %}
@@ -80,12 +82,14 @@
                     </div>
                 </div>
                 <br>
+                {% if not guest_scan %}
                 <form action="{% url 'delete_scan' scan.id %}" method="post" enctype="multipart/form-data" style="display: inline-block;">
                     {% csrf_token %}
                     <button type="submit" class="delete-scan btn btn-danger">Delete {% fa5_icon 'trash-alt' color='white' %}</button>
                 </form>
                 {% if scan.progress >= 40 %}
                     <a href="{% url 'export' id=scan.id %}" class="btn btn-outline-dark">Export {% fa5_icon 'download' %}</a> 
+                {% endif %}
                 {% endif %}
             </div>
         </div>

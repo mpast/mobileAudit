@@ -6,9 +6,14 @@ import subprocess
 import tempfile
 from unittest.mock import MagicMock, call, patch
 
-from django.test import SimpleTestCase, override_settings
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from app import analysis
+from app.models import Application, Scan
 from app.worker import tasks
 
 
@@ -275,3 +280,175 @@ class ScanStateTests(SimpleTestCase):
         response = tasks.scan_state(MagicMock(), 1)
 
         self.assertEqual(json.loads(response.content), progress)
+
+
+class GuestScanAccessTests(TestCase):
+    @patch('app.views.task_create_scan.delay')
+    def test_guest_can_start_a_scan_and_only_its_session_can_access_it(self, delay):
+        delay.return_value.id = 'guest-scan-task'
+        apk = SimpleUploadedFile(
+            'guest.apk',
+            b'APK test data',
+            content_type='application/vnd.android.package-archive',
+        )
+
+        response = self.client.post(
+            reverse('create_scan'),
+            {'description': 'Guest upload', 'apk': apk},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        scan = Scan.objects.get(description='Guest upload')
+        self.assertIsNone(scan.user)
+        self.assertIsNone(scan.app)
+        self.assertEqual(response['Location'], reverse('scan', kwargs={'id': scan.id}))
+
+        self.assertEqual(self.client.get(reverse('scan', kwargs={'id': scan.id})).status_code, 200)
+        self.assertEqual(self.client.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 200)
+
+        other_browser = self.client_class()
+        self.assertEqual(other_browser.get(reverse('scan', kwargs={'id': scan.id})).status_code, 404)
+        self.assertEqual(other_browser.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 404)
+        self.assertEqual(other_browser.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 404)
+
+    def test_other_authenticated_browser_cannot_export_guest_scan(self):
+        scan = Scan.objects.create(
+            description='Guest upload',
+            apk=SimpleUploadedFile('guest.apk', b'APK test data'),
+        )
+        other_browser = self.client_class()
+        other_browser.force_login(User.objects.create_user('other', password='password'))
+
+        response = other_browser.get(reverse('export', kwargs={'id': scan.id}))
+
+        self.assertEqual(response.status_code, 404)
+
+    @patch('app.views.get_report_virus_total')
+    def test_virustotal_update_requires_authenticated_authorized_access(self, get_report):
+        scan = Scan.objects.create(
+            description='Guest upload',
+            apk=SimpleUploadedFile('guest.apk', b'APK test data'),
+        )
+        url = reverse('update_virustotal', kwargs={'scan_id': scan.id})
+
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertFalse(get_report.called)
+
+        other_browser = self.client_class()
+        other_browser.force_login(User.objects.create_user('other', password='password'))
+        self.assertEqual(other_browser.get(url).status_code, 404)
+        self.assertFalse(get_report.called)
+
+    @patch('app.views.get_report_virus_total')
+    def test_authenticated_user_can_update_own_scan_virustotal_report(self, get_report):
+        user = User.objects.create_user('owner', password='password')
+        scan = Scan.objects.create(
+            user=user,
+            description='Signed-in upload',
+            apk=SimpleUploadedFile('signed-in.apk', b'APK test data'),
+            sha256='sha256',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse('update_virustotal', kwargs={'scan_id': scan.id})
+        )
+
+        self.assertRedirects(response, reverse('scan', kwargs={'id': scan.id}))
+        get_report.assert_called_once_with(scan, 'sha256')
+
+
+class GuestApplicationAccessTests(TestCase):
+    @patch('app.views.task_create_scan.delay')
+    def test_guest_app_and_its_scan_are_private_to_the_creating_session(self, delay):
+        delay.return_value.id = 'guest-app-scan-task'
+
+        response = self.client.post(
+            reverse('create_app'),
+            {'name': 'Guest application', 'description': 'Created without an account'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        app = Application.objects.get(name='Guest application')
+        self.assertIsNone(app.user)
+        self.assertEqual(
+            response['Location'],
+            reverse('create_scan', kwargs={'app_id': app.id}),
+        )
+        self.assertEqual(self.client.get(reverse('app', kwargs={'id': app.id})).status_code, 200)
+
+        apk = SimpleUploadedFile('guest-app.apk', b'APK test data')
+        response = self.client.post(
+            reverse('create_scan', kwargs={'app_id': app.id}),
+            {'description': 'Guest app upload', 'apk': apk},
+        )
+
+        scan = Scan.objects.get(description='Guest app upload')
+        self.assertEqual(scan.app, app)
+        self.assertIsNone(scan.user)
+        self.assertEqual(self.client.get(reverse('scan', kwargs={'id': scan.id})).status_code, 200)
+
+        other_browser = self.client_class()
+        self.assertEqual(other_browser.get(reverse('app', kwargs={'id': app.id})).status_code, 404)
+        self.assertEqual(
+            other_browser.get(reverse('create_scan', kwargs={'app_id': app.id})).status_code,
+            404,
+        )
+        self.assertEqual(other_browser.get(reverse('scan', kwargs={'id': scan.id})).status_code, 404)
+
+        other_browser.force_login(User.objects.create_user('other-user', password='password'))
+        self.assertEqual(other_browser.get(reverse('app', kwargs={'id': app.id})).status_code, 404)
+
+    def test_guest_can_create_an_app_through_the_api_only_for_its_session(self):
+        response = self.client.post(
+            '/api/v1/app/',
+            data=json.dumps({'name': 'Guest API application', 'description': 'API-created'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        app = Application.objects.get(name='Guest API application')
+        self.assertIsNone(app.user)
+        self.assertEqual(self.client.get('/api/v1/app/{}/'.format(app.id)).status_code, 200)
+
+        other_browser = self.client_class()
+        self.assertEqual(other_browser.get('/api/v1/app/{}/'.format(app.id)).status_code, 404)
+
+
+class OwnershipIsolationTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('owner', password='password')
+        self.other_user = User.objects.create_user('other', password='password')
+        self.app = Application.objects.create(
+            name='Owner application',
+            description='Private application',
+            user=self.owner,
+        )
+        self.scan = Scan.objects.create(
+            app=self.app,
+            user=self.owner,
+            description='Private scan',
+            apk=SimpleUploadedFile('private.apk', b'APK test data'),
+        )
+
+    def test_authenticated_user_cannot_view_another_users_app_or_scan(self):
+        other_browser = self.client_class()
+        other_browser.force_login(self.other_user)
+
+        self.assertEqual(other_browser.get(reverse('app', kwargs={'id': self.app.id})).status_code, 404)
+        self.assertEqual(other_browser.get(reverse('scan', kwargs={'id': self.scan.id})).status_code, 404)
+
+    def test_api_hides_other_users_apps_and_scans_from_list_and_detail(self):
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.other_user)
+
+        app_list = api_client.get('/api/v1/app/')
+        scan_list = api_client.get('/api/v1/scan/')
+
+        self.assertEqual(app_list.status_code, 200)
+        self.assertEqual(scan_list.status_code, 200)
+        self.assertNotIn(self.app.id, [item['id'] for item in app_list.data['results']])
+        self.assertNotIn(self.scan.id, [item['id'] for item in scan_list.data['results']])
+        self.assertEqual(api_client.get('/api/v1/app/{}/'.format(self.app.id)).status_code, 404)
+        self.assertEqual(api_client.get('/api/v1/scan/{}/'.format(self.scan.id)).status_code, 404)
