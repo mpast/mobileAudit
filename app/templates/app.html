@@ -14,7 +14,7 @@
             </tr>
             <tr>
                 <th>Created by</th>
-                <td>{{ app.user }}</td>
+                <td>{% if app.user %}{{ app.user }}{% else %}Guest{% endif %}</td>
             </tr>
         </table>
     </div>

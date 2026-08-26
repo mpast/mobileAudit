@@ -43,6 +43,12 @@ class ScanForm(forms.ModelForm):
     class Meta:   
         model = Scan
         fields = ('description', 'apk', 'app', 'defectdojo_id')
+
+
+class GuestScanForm(forms.ModelForm):
+    class Meta:
+        model = Scan
+        fields = ('description', 'apk')
        
 class ApplicationForm(forms.ModelForm):
     class Meta:
