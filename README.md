@@ -54,7 +54,7 @@ For easy access there is a sidebar on the left page of the scan:
 - **nginx**: Nginx 1.23.3
 - **rabbitmq**: RabbitMQ 3.11.5
 - **worker**: Celery 5.2.2
-- **web**: Mobile Audit App (Django 3.2.16)
+- **web**: Mobile Audit App (Django 5.2.17 LTS)
 
 ### Docker Base images
 
