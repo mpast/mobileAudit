@@ -8,7 +8,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.http import Http404, HttpResponse
-from django.template.loader import get_template
+from django.template.loader import render_to_string
 import pdfkit, requests, logging
 from app.access import (
     can_access_app,
@@ -461,7 +461,6 @@ def export(request, id):
     scan = get_object_or_404(Scan, pk=id)
     if not can_access_scan(request, scan):
         raise Http404
-    t = get_template('export.html')
     certificates = Certificate.objects.filter(scan=id)
     permissions = Permission.objects.filter(scan=id)
     activities = Activity.objects.filter(scan=id)
@@ -500,7 +499,7 @@ def export(request, id):
         'settings': settings,
     }
 
-    html = t.render(c)
+    html = render_to_string('export.html', c, request=request)
     options = {
         'page-size': 'Letter',
         'encoding': "UTF-8",
