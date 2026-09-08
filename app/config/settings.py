@@ -152,7 +152,7 @@ CWE_URL = env('CWE_URL', 'https://cwe.mitre.org/data/definitions/')
 
 MALWARE_ENABLED = env('MALWARE_ENABLED', True)
 MALWAREDB_URL = env('MALWAREDB_URL', 'https://www.malwaredomainlist.com/mdlcsv.php')
-MALTRAILDB_URL = env('MALTRAILDB_URL', 'https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt')
+MALTRAILDB_URL = env('MALTRAILDB_URL', 'https://github.com/stamparm/trails/releases/latest/download/maltrail-malware-domains.txt')
 
 VIRUSTOTAL_ENABLED = env('VIRUSTOTAL_ENABLED', False)
 VIRUSTOTAL_URL = env('VIRUSTOTAL_URL', 'https://www.virustotal.com/')
