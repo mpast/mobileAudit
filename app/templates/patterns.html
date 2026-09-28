@@ -2,14 +2,14 @@
 <button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button> {% if patterns %}
 <br>
 <form action="{% url 'patterns' %}" method="post" enctype="multipart/form-data">
-    <div class="btn-group mr-2">
-        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+    <div class="btn-group me-2">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
             Bulk Edit
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenu" id="bulk_edit">
             <li style="margin: 15px;">
                 <label style="display: block" for="status">Status</label>
-                <select name="status" id="status">
+                <select name="status" id="status" class="form-select">
                         <option value="">Choose Status</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -66,15 +66,4 @@
     {% endfor %}
 </ul>
 {% endif %}
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#id_select_all').on('click', function() {
-            $('.pattern').prop('checked', this.checked);
-        });
-        $('.dropdown-menu').click(function(e) {
-            e.stopPropagation();
-        });
-        $("#patterns").DataTable()
-    });
-</script>
 {% endif %} {% endblock %}

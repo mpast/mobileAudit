@@ -137,30 +137,3 @@
 </section>
 {% endif %}
 {% endblock %}
-
-{% block extra_scripts %}
-<script>
-    function fadeAlerts() {
-        const alerts = document.querySelectorAll('.alert:not([hidden])');
-        alerts.forEach(function (alert, index) {
-            window.setTimeout(function () {
-                alert.classList.add('is-dismissing');
-                window.setTimeout(function () {
-                    alert.hidden = true;
-                }, 250);
-            }, 3250 + (1000 * (alerts.length - index - 1)));
-        });
-    }
-
-    window.addEventListener('DOMContentLoaded', function () {
-        fadeAlerts();
-        document.querySelectorAll('.delete-scan').forEach(function (button) {
-            button.addEventListener('click', function (event) {
-                if (!window.confirm('Delete this scan? This action cannot be undone.')) {
-                    event.preventDefault();
-                }
-            });
-        });
-    });
-</script>
-{% endblock %}

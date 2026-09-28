@@ -29,17 +29,4 @@
         {% endfor %}
     </tbody>
 </table>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('.table-order').each(function() {
-            try {
-                $(this).DataTable({
-                    paging: false
-                });
-            } catch (error) {
-                console.log(this)
-            }
-        });
-    });
-</script>
 {% endblock %}
