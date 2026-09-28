@@ -1,23 +1,26 @@
-{% extends 'base.html' %} {% load fontawesome_5 %} {% load static %} {% block content %}
-<div id="wrapper">
-    <!-- Sidebar -->
-    <nav class="sidebar sidebar-left side-nav bg-dark">
+{% extends 'base.html' %}
+{% load fontawesome_5 %}
+{% load static %}
 
-        <!-- close sidebar menu -->
-        <div class="dismiss">
-            {% fa5_icon 'chevron-left' %}
-        </div>
+{% block title %}Scan {{ scan.id }} · Mobile Audit{% endblock %}
+
+{% block content %}
+<div id="wrapper" class="scan-workspace">
+    <nav class="sidebar sidebar-left" aria-label="Scan sections">
+        <button class="dismiss" type="button" aria-label="Close scan navigation">
+            {% fa5_icon 'times' %}
+        </button>
 
         <div class="sidebar-title">
-            <h3><a class="nav-link" href="{% url 'home' %}">Mobile Audit</a></h3>
+            <h3><a href="#scan-overview">Scan #{{ scan.id }}</a></h3>
         </div>
 
         <ul class="list-unstyled menu-elements">
             <li class="waves-effect">
-                <a class="scroll-link" href="#info">{% fa5_icon 'mobile-alt' %} <span>App Info</span></a>
+                <a class="scroll-link" href="#info">{% fa5_icon 'mobile-alt' %} <span>Application info</span></a>
             </li>
             <li class="waves-effect">
-                <a class="scroll-link" href="#security">{% fa5_icon 'lock' %} <span>Security info</span></a>
+                <a class="scroll-link" href="#security">{% fa5_icon 'lock' %} <span>Security overview</span></a>
             </li>
             <li class="waves-effect">
                 <a class="scroll-link" href="#permissions">{% fa5_icon 'id-card' %} <span>Permissions</span></a>
@@ -32,7 +35,7 @@
                 <a class="scroll-link" href="#findings">{% fa5_icon 'bug' %} <span>Findings</span></a>
             </li>
             <li class="waves-effect">
-                <a class="scroll-link" href="#best_practices">{% fa5_icon 'clipboard-check' %} <span>Security Best Practices</span></a>
+                <a class="scroll-link" href="#best_practices">{% fa5_icon 'clipboard-check' %} <span>Best practices</span></a>
             </li>
             {% if settings.VIRUSTOTAL_ENABLED %}
             <li class="waves-effect">
@@ -58,42 +61,46 @@
             {% endif %}
         </ul>
     </nav>
-    <!-- End sidebar -->
     <div class="overlay"></div>
-    <div class="content">
-        <a class="btn btn-dark open-menu" href="#" role="button">
-            {% fa5_icon 'bars' %}
-        </a>
-        <button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button>
-        <button class="btn btn-sm btn-outline-success" onclick="window.location.reload()">{% fa5_icon 'redo-alt' %} Refresh </button>
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title">Scan</h4>
-                <div id="progress-wrapper">
-                    <p><b>Description: </b> {{ scan.description }}</p>
-                    <p><b>Created by: </b> {% if scan.user %}{{ scan.user.username }}{% else %}Guest{% endif %}</p>
-                    <p><b>Status:</b> <span id="progress-status">{{ scan.status }}</span></p>
-                    <div class="progress" style="height:20px">
-                        {% if scan.progress == 100 %}
-                        <div class="progress-bar bg-success" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
-                        {% else %}
-                        <div class="progress-bar bg-primary" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ scan.progress }} %</div>
-                        {% endif %}
+    <div class="content scan-content">
+        <div class="scan-toolbar">
+            <button class="btn btn-dark open-menu" type="button" aria-label="Open scan navigation">{% fa5_icon 'bars' %} Sections</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">{% fa5_icon 'redo-alt' %} Refresh</button>
+        </div>
+
+        <section id="scan-overview" class="scan-overview">
+            <div class="scan-overview__header">
+                <div>
+                    <span class="eyebrow">Android security analysis</span>
+                    <h1>{{ scan.description|default:"Untitled scan" }}</h1>
+                    <p>Scan #{{ scan.id }} · Created by {% if scan.user %}{{ scan.user.username }}{% else %}Guest{% endif %}</p>
+                </div>
+                <span id="progress-status" class="scan-status">{{ scan.status }}</span>
+            </div>
+
+            <div id="progress-wrapper" class="scan-progress">
+                <div class="scan-progress__label"><span>Analysis progress</span><strong>{{ scan.progress }}%</strong></div>
+                <div class="progress">
+                    <div class="progress-bar {% if scan.progress == 100 %}bg-success{% endif %}" id="progress-bar" style="width: {{ scan.progress }}%" role="progressbar" aria-valuenow="{{ scan.progress }}" aria-valuemin="0" aria-valuemax="100">
+                        <span class="sr-only">{{ scan.progress }}% complete</span>
                     </div>
                 </div>
-                <br>
-                {% if not guest_scan %}
-                <form action="{% url 'delete_scan' scan.id %}" method="post" enctype="multipart/form-data" style="display: inline-block;">
-                    {% csrf_token %}
-                    <button type="submit" class="delete-scan btn btn-danger">Delete {% fa5_icon 'trash-alt' color='white' %}</button>
-                </form>
-                {% if scan.progress >= 40 %}
-                    <a href="{% url 'export' id=scan.id %}" class="btn btn-outline-dark">Export {% fa5_icon 'download' %}</a> 
-                {% endif %}
-                {% endif %}
             </div>
-        </div>
-        <br>
+
+            {% if not guest_scan %}
+            <div class="scan-overview__actions">
+                {% if scan.progress >= 40 %}
+                <a href="{% url 'export' id=scan.id %}" class="btn btn-primary">{% fa5_icon 'download' %} Export report</a>
+                {% endif %}
+                <form action="{% url 'delete_scan' scan.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="delete-scan btn btn-outline-danger">{% fa5_icon 'trash-alt' %} Delete scan</button>
+                </form>
+            </div>
+            {% endif %}
+        </section>
+
         <div class="card">
             <div class="card-body">
                 <a name="info"></a>
