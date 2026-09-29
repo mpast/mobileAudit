@@ -17,7 +17,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'bootstrap4',
     'widget_tweaks',
     'fontawesome_5',
     'rest_framework',
@@ -55,7 +54,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'app.config.wsgi'
+WSGI_APPLICATION = 'app.config.wsgi.application'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 

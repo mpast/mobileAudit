@@ -6,17 +6,22 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
+from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.template.loader import render_to_string
 import pdfkit, requests, logging
 from app.access import (
+    GUEST_SESSION_HANDSHAKE_MESSAGE,
     can_access_app,
     can_access_scan,
+    ensure_guest_session,
     grant_guest_app_access,
     grant_guest_scan_access,
     guest_app_ids,
     guest_scan_ids,
+    has_established_guest_session,
 )
 from app.forms import GuestScanForm, ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
 from app import analysis
@@ -25,6 +30,27 @@ from app.worker.tasks import scan_state as get_scan_state, task_create_scan
 from app.integration import get_report_virus_total
 
 logger = logging.getLogger('app')
+
+
+def _accessible_scans(request):
+    guest_ids = guest_scan_ids(request)
+    if request.user.is_authenticated:
+        return Scan.objects.filter(Q(user=request.user) | Q(pk__in=guest_ids))
+    return Scan.objects.filter(pk__in=guest_ids)
+
+
+def _get_accessible_scan_or_404(request, scan_id):
+    scan = get_object_or_404(Scan, pk=scan_id)
+    if not can_access_scan(request, scan):
+        raise Http404
+    return scan
+
+
+def _get_accessible_finding_or_404(request, finding_id):
+    finding = get_object_or_404(Finding.objects.select_related('scan'), pk=finding_id)
+    if not can_access_scan(request, finding.scan):
+        raise Http404
+    return finding
 
 def user_register(request):
     form = SignUpForm(request.POST or None)
@@ -184,6 +210,19 @@ def scan(request, id):
     })
 
 def create_scan(request, app_id = ''):
+    if not request.user.is_authenticated:
+        if request.method == 'POST' and not has_established_guest_session(request):
+            ensure_guest_session(request)
+            form = GuestScanForm(request.POST, request.FILES)
+            form.add_error(None, GUEST_SESSION_HANDSHAKE_MESSAGE)
+            return render(
+                request,
+                'create_scan.html',
+                {'form': form, 'guest_scan': True},
+                status=409,
+            )
+        ensure_guest_session(request)
+
     app = None
     if app_id:
         app = get_object_or_404(Application, pk=app_id)
@@ -289,8 +328,10 @@ def create_app(request):
         'guest_app': not request.user.is_authenticated,
     })
 
-@login_required
 def findings(request, scan_id=''):
+    if request.method == 'POST' and not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path())
+
     findings = []
     scan = ''
     if request.method == 'POST':
@@ -301,18 +342,24 @@ def findings(request, scan_id=''):
         severity = request.POST.get("severity", "")
         push_dojo = request.POST.get("push_dojo", "")
         scan = request.POST.get("scan", "")
+        requested_scan = None
+        if scan:
+            requested_scan = _get_accessible_scan_or_404(request, scan)
+        if delete and requested_scan is None:
+            raise Http404
         findings_list = request.POST.items()
         ok = False
         for finding, value in findings_list:
             try:
                 finding = int(finding)
                 if isinstance(finding, int):
-                    f = Finding.objects.get(pk=finding)
+                    f = _get_accessible_finding_or_404(request, finding)
+                    if requested_scan is not None and f.scan_id != requested_scan.id:
+                        raise Http404
                     if (delete):
-                        s = Scan.objects.get(pk=scan)
                         f.delete()
-                        s.findings = s.findings - 1
-                        s.save()
+                        requested_scan.findings = requested_scan.findings - 1
+                        requested_scan.save()
                         return redirect(reverse('scan', kwargs={"id": scan}))
                     else:
                         if (edit):
@@ -325,24 +372,31 @@ def findings(request, scan_id=''):
                         findings.append(f)
                     if (push_dojo and settings.DEFECTDOJO_ENABLED):
                         analysis.create_finding_on_dojo(f)
+            except Http404:
+                raise
             except Exception as e:
                 logger.debug(e)
         if (edit and ok):
             messages.success(request, 'Edited successfully')
     else:
         if (scan_id):
+            _get_accessible_scan_or_404(request, scan_id)
+            scan = scan_id
             findings = Finding.objects.filter(scan=scan_id).exclude(severity=Severity.NO).order_by('id')
         else:
-            findings = Finding.objects.all().exclude(severity=Severity.NO).order_by('id')
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+            findings = Finding.objects.filter(scan__in=_accessible_scans(request)).exclude(
+                severity=Severity.NO
+            ).order_by('id')
     return render(request, 'findings.html', {
         'findings': findings,
         'scan': scan,
         'settings': settings,
     })
 
-@login_required
 def finding(request, id):
-    finding = Finding.objects.get(pk=id)
+    finding = _get_accessible_finding_or_404(request, id)
     return render(request, 'finding.html', {
         'finding': finding,
         'settings': settings,
@@ -351,9 +405,14 @@ def finding(request, id):
 @login_required
 def create_finding(request, scan_id = ''):
     if request.method == 'POST':
+        posted_scan_id = request.POST.get('scan')
+        if posted_scan_id:
+            _get_accessible_scan_or_404(request, posted_scan_id)
         form = FindingForm(request.POST)
+        form.fields['scan'].queryset = _accessible_scans(request)
         if form.is_valid():
             obj = form.save(commit=False)
+            _get_accessible_scan_or_404(request, obj.scan_id)
             obj.user = request.user
             form_saved = obj.save()
             scan = obj.scan
@@ -368,33 +427,38 @@ def create_finding(request, scan_id = ''):
         if (scan_id == ''):
             form = FindingForm()
         else:
-            scan = Scan.objects.get(pk=scan_id)
+            scan = _get_accessible_scan_or_404(request, scan_id)
             form = FindingForm(initial={'scan': scan})
+        form.fields['scan'].queryset = _accessible_scans(request)
     return render(request, 'create_finding.html', {
         'form': form,
     })
 
 @login_required
 def edit_finding(request, id):
+    finding = _get_accessible_finding_or_404(request, id)
     if request.method == 'POST':
-        finding = Finding.objects.get(pk=id)
+        posted_scan_id = request.POST.get('scan')
+        if posted_scan_id:
+            _get_accessible_scan_or_404(request, posted_scan_id)
         form = FindingForm(request.POST, instance=finding)
+        form.fields['scan'].queryset = _accessible_scans(request)
         if form.is_valid():
             obj = form.save(commit=False)
+            _get_accessible_scan_or_404(request, obj.scan_id)
             obj.user = request.user
             form_saved = obj.save()
             messages.success(request, 'Form submission successful')
     else:
-        finding = Finding.objects.get(pk=id)
         form = FindingForm(instance=finding, initial={'status': finding.status, 'severity': finding.severity})
+        form.fields['scan'].queryset = _accessible_scans(request)
     return render(request, 'edit_finding.html', {
         'form': form,
         'finding': id,
     })
 
-@login_required
 def finding_view_file(request, id):
-    finding = Finding.objects.get(pk=id)
+    finding = _get_accessible_finding_or_404(request, id)
     lines = analysis.get_lines(finding)
     return render(request, 'file.html', {
         'lines': lines,

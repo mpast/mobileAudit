@@ -2,14 +2,14 @@
 <button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">{% fa5_icon 'chevron-left' %} Back </button>
 <form action="{% url 'findings' %}" method="post" enctype="multipart/form-data">
     <input type="hidden" name="scan" value="{{ scan }}">
-    <div class="btn-group mr-2">
-        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+    <div class="btn-group me-2">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
             Bulk Edit
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenu" id="bulk_edit">
             <li style="margin: 15px;">
                 <label style="display: block" for="severity">Severity</label>
-                <select name="severity" id="severity" class="mdb-select md-form" searchable="Choose Severity">
+                <select name="severity" id="severity" class="form-select">
                     <option value="NO">None</option>
                     <option value="LO">Low</option>
                     <option value="ME">Medium</option>
@@ -17,7 +17,7 @@
                     <option value="CR">Critical</option>
                 </select>
                 <label style="display: block" for="status">Status</label>
-                <select name="status" id="status" class="mdb-select md-form" searchable="Choose Status">
+                <select name="status" id="status" class="form-select">
                     <option value="VF">Verified</option>
                     <option value="FP">False Positive</option>
                     <option value="TP">True Positive</option>
@@ -88,44 +88,4 @@
 {% endif %} {% if scan %}
 <a class="btn btn-sm btn-outline-secondary" href="{% url 'scan' id=scan %}">{% fa5_icon 'chevron-left' %} Return to scan </a> {% endif %}
 
-<script type="text/javascript">
-    function fade_alerts() {
-        alerts = document.getElementsByClassName("alert");
-        var i = alerts.length;
-        for (let elem of alerts) {
-            i--;
-            time = 3250+(1000*i);
-            setTimeout(function() {
-                $(elem).fadeOut("slow");
-            }, time);
-        }
-    }
-    window.addEventListener('DOMContentLoaded', (event) => {
-        fade_alerts();
-    });
-    $(document).ready(function() {
-        $('#id_select_all').on('click', function() {
-            $('.finding').prop('checked', this.checked);
-        });
-        $('.dropdown-menu').click(function(e) {
-            e.stopPropagation();
-        });
-        $('[name="delete_findings"]').on('click', function(e) {
-            if (!confirm('Do you really want to delete the findings?')) {
-                e.preventDefault();
-            }
-        });
-        $("#findings").DataTable({
-            columnDefs: [{
-                orderable: false,
-                className: 'select-checkbox',
-                targets: 0
-            }],
-            select: {
-                style: 'os',
-                selector: 'td:first-child'
-            }
-        });
-    });
-</script>
 {% endblock %}

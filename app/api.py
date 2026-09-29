@@ -10,13 +10,17 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as filters
 from app.access import (
+    GUEST_SESSION_HANDSHAKE_MESSAGE,
     can_access_app,
+    ensure_guest_session,
     grant_guest_app_access,
     grant_guest_scan_access,
     guest_app_ids,
     guest_scan_ids,
+    has_established_guest_session,
 )
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 
 class IsAuthenticatedOrGuestCreate(permissions.BasePermission):
@@ -55,6 +59,15 @@ class ScanViewSet(viewsets.ModelViewSet):
     queryset = Scan.objects.all()
     permission_classes = (IsAuthenticatedOrGuestCreate, IsUserOrReadOnly)
     parser_classes = (MultiPartParser, FormParser)
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_authenticated and not has_established_guest_session(request):
+            ensure_guest_session(request)
+            return Response(
+                {'detail': GUEST_SESSION_HANDSHAKE_MESSAGE},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
