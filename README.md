@@ -1,218 +1,120 @@
-## Mobile Audit
+# Mobile Audit
 
-![Icon](app/static/mobile_audit.png)
+Static security analysis and malware inspection for Android APKs.
 
-**MobileAudit** - SAST and Malware Analysis for Android Mobile APKs
+Mobile Audit is a Django application that extracts APK metadata, scans source code for weaknesses, checks malware indicators, and brings the results together in a focused security workspace. Findings can be triaged in the UI, explored through the REST API, or exported as PDF reports.
 
-A Django web application to perform static analysis and detect malicious content inside Android APKs. The project extracts app metadata, scans source code for weaknesses, and aggregates results (SAST findings, best practices, certificate info, strings, databases, files, VirusTotal, and more) into a browsable dashboard and API.
+![Mobile Audit application dashboard](app/static/screenshots/dashboard.png)
 
-DeepWiki documentation: https://deepwiki.com/mpast/mobileAudit
+## What it does
 
-- [Components](#components)
-- [Docker Base images](#docker-base-images)
-- [Main features](#main-features)
-- [Patterns](#patterns)
-- [Models](#models)
-- [Installation](#installation)
-- [API v1](#api-v1)
-  - [Usage](#usage)
-  - [Swagger](#swagger)
-  - [ReDoc](#redoc)
-  - [Endpoints](#endpoints)
-- [TLS](#tls)
-  - [Pre-requirements](#pre-requirements)
-  - [Nginx configuration](#nginx-configuration)
-  - [Docker configuration](#docker-configuration)
-- [Environment variables](#environment-variables)
----------------------------------------
+- Extracts application, component, certificate, permission, string, database, and file metadata
+- Detects SAST findings with CWE and Mobile Top 10 mappings
+- Checks domains against MalwareDB and Maltrail sources
+- Supports optional VirusTotal lookups and uploads
+- Exports findings to DefectDojo through its API v2 integration
+- Provides finding triage, including false-positive management
+- Exposes a token-authenticated API with Swagger and ReDoc documentation
+- Generates PDF scan reports
 
-![App](app/static/app.png)
+![Mobile Audit scan overview](app/static/screenshots/scan-overview.png)
 
-In each of the scans, it would have the following information:
+The interface uses Bootstrap 5 with a small native JavaScript layer for navigation, filtering, sorting, pagination, confirmations, and status updates. jQuery and the previous Bootstrap 4 runtime are no longer required.
 
-- APK information and analysis: Application info, security info, components, certificate info, strings, databases, files
-- SAST findings categorized with CWE and Mobile Top 10 mapping
-- Pattern engine with toggleable rules
-- Malware domain checks against MalwareDB & Maltrail
-- VirusTotal (API v3) lookup & optional upload (disabled by default)
-- DefectDojo integration (API v2) (optional) for exporting findings
-- API with Swagger and ReDoc, plus token-based authentication
-- Export scan reports to PDF
-- Findings editable with false-positive triage
+## Quick start
 
-![App](app/static/scan.png)
-
-For easy access there is a sidebar on the left page of the scan:
-
-![Menu](app/static/menu.png)
-
-### Components
-
-![Schema](app/static/architecture.png)
-
-- **db**: PostgreSQL 3.11.5
-- **nginx**: Nginx 1.23.3
-- **rabbitmq**: RabbitMQ 3.11.5
-- **worker**: Celery 5.2.2
-- **web**: Mobile Audit App (Django 5.2.17 LTS)
-
-### Docker Base images
-
-Image is based on python buster. Link to [Docker Hub image](https://hub.docker.com/repository/docker/mpast/mobile_audit)
-
-| Image |  Tags | Base |
-|--------------------|-------|--------------------- |
-| mpast/mobile_audit | 3.0.0 | python:3.9.16-buster |
-| mpast/mobile_audit | 2.2.1 | python:3.9.7-buster  |
-| mpast/mobile_audit | 1.3.8 | python:3.9.4-buster  |
-| mpast/mobile_audit | 1.0.0 | python:3.9.0-buster  |
-
-### Main features
-- Runs in Docker for easy, reproducible deployment
-- Extracts and shows detailed APK information
-- SAST rules that map to CWE and Mobile Top 10 risks
-- Malware indicators detection (MalwareDB / Maltrail)
-- Integration points for VirusTotal and DefectDojo (optional)
-- Export scan results to PDF
-- User authentication, management, and token-based API
-- Swagger and ReDoc documentation
-- TLS-ready Nginx configuration for production
-
-Planned / wishlist
-- LDAP integration
-- Export to Markdown / CSV
-- Dynamic page reload improvements (WIP)
-
-### Patterns
-- The app includes a rule/pattern engine that detects potential vulnerabilities and malicious snippets inside APKs.
-- Patterns are configurable and can be enabled/disabled from the `/patterns` UI.
-- Note: Some hardcoded patterns are derived from the apkleaks project: https://github.com/dwisiswant0/apkleaks
-
-![Patterns](app/static/patterns.png)
-
-### Models
-The application has an created models for each of the entities of the scans' information to be able to create relations an abtain the best conclusions for each of the apks.
-
-![Models](app/static/models_snippet.png)
-
-To see the whole model schema, go to [models](app/static/models.png)
-
-
-### Installation
-
-Using Docker-compose:
-
-The provided `docker-compose.yml` file allows you to run the app locally in development.
-
-To build the local image and if there are changes to the local Application Dockerfile, you can build the image with:
+Docker Compose starts PostgreSQL, Django, Nginx, RabbitMQ, and the Celery worker together.
 
 ```sh
-docker-compose build
+docker compose build
+docker compose up
 ```
 
-Then, to start the container, run:
+Open [http://localhost:8888](http://localhost:8888) after the services are ready.
+
+To run in the background or stop the stack:
 
 ```sh
-docker-compose up
+docker compose up -d
+docker compose down
 ```
 
-Optional: run in detached mode (not see the logs)
+Review `.env.example` before starting. For any shared or production environment, replace the example secret, database credentials, and administrator credentials with secure values. VirusTotal, DefectDojo, and malware checks remain optional.
+
+## Architecture
+
+![Mobile Audit architecture](app/static/architecture.png)
+
+| Service | Responsibility |
+| --- | --- |
+| Django | Web application and REST API |
+| PostgreSQL 16 | Persistent application data |
+| Celery | Background APK analysis |
+| RabbitMQ 4.2 | Task broker |
+| Nginx | HTTP or TLS entry point |
+
+The application currently targets Django 5.2 LTS and Python 3.12.
+
+## Analysis patterns
+
+The pattern engine finds potentially vulnerable or malicious snippets in decompiled APK content. Rules can be enabled or disabled from the **Patterns** screen.
+
+Some hardcoded patterns are derived from [apkleaks](https://github.com/dwisiswant0/apkleaks).
+
+![Pattern management](app/static/patterns.png)
+
+## API v1
+
+Request an API token from:
+
+```text
+POST /api/v1/auth-token/
+```
+
+Send the token with subsequent requests:
+
+```text
+Authorization: Token <api-key>
+```
+
+Interactive and machine-readable documentation is available at:
+
+| Format | Path |
+| --- | --- |
+| Swagger UI | `/swagger/` |
+| ReDoc | `/redoc/` |
+| OpenAPI JSON | `/swagger.json` |
+| OpenAPI YAML | `/swagger.yaml` |
+
+## TLS deployment
+
+Place the certificate and key in `nginx/ssl`, then start the production Compose configuration:
 
 ```sh
-docker-compose up -d
+docker compose -f docker-compose.prod.yaml up -d
 ```
 
-Once the application has launched, you can test the application by navigating to: http://localhost:8888/ to access the dashboard.
+The TLS stack is available at [https://localhost](https://localhost). The relevant Nginx configurations are:
 
-![Dashboard](app/static/dashboard.png)
+- `nginx/app.conf` for local HTTP on port 8888
+- `nginx/app_tls.conf` for HTTPS on port 443
 
-Also, there is a TLS version using `docker-compose.prod.yaml` running in port 443
-
-
-To use it, execute
-```sh
-  docker-compose -f docker-compose.prod.yaml up
-```
-
-Then, you can test the application by navigating to: https://localhost/ to access the dashboard.
-
-For more information, see [TLS](#tls)
-
-To stop and remove the containers, run
+For local testing, a one-day self-signed certificate can be generated with:
 
 ```sh
-docker-compose down
+openssl req -x509 -nodes -days 1 -newkey rsa:4096 \
+  -subj "/C=ES/ST=Madrid/L=Madrid/O=Example/OU=IT/CN=localhost" \
+  -keyout nginx/ssl/nginx.key \
+  -out nginx/ssl/nginx.crt
 ```
 
-### API v1
+## Project resources
 
-REST API integration with Swagger and ReDoc.
+- [Contributing guide](CONTRIBUTING.md)
+- [DeepWiki documentation](https://deepwiki.com/mpast/mobileAudit)
+- [Docker Hub image](https://hub.docker.com/repository/docker/mpast/mobile_audit)
+- [Data model diagram](app/static/models.png)
 
-#### Usage
+## License
 
-* Endpoint to authenticate and get token:
-`/api/v1/auth-token/`
-
-![Auth token](app/static/auth_token.png)
-
-* Once authenticated, use header in all requests:
-`Authorization: Token <ApiKey>`
-
-#### Swagger
-
-![Swagger](app/static/swagger.png)
-
-
-#### ReDoc
-
-![ReDoc](app/static/redoc.png)
-
-
-#### Endpoints
-
-* A JSON view of the API specification at `/swagger.json`
-* A YAML view of the API specification at `/swagger.yaml`
-* A swagger-ui view of the API specification at `/swagger/`
-* A ReDoc view of the API specification at `/redoc/`
-
-### TLS
-
-#### Pre-requirements
-
-* Add the certificates into `nginx/ssl`
-* To generate a self-signed certificate:
-
-```sh
-openssl req -x509 -nodes -days 1 -newkey rsa:4096 -subj "/C=ES/ST=Madrid/L=Madrid/O=Example/OU=IT/CN=localhost" -keyout nginx/ssl/nginx.key -out nginx/ssl/nginx.crt
-```
-
-#### Nginx configuration
-
-* TLS - port 443: `nginx/app_tls.conf`
-* Standard - port 8888: `nginx/app.conf`
-
-#### Docker configuration
-
-By default, there is a volume in `docker-compose.yml` with the configuration with 8888 available
-
-```yml
-- ./nginx/app.conf:/etc/nginx/conf.d/app.conf
-```
-
-**In a production environment** use `docker-compose.prod.yaml` with port 443
-```yml
-- ./nginx/app_tls.conf:/etc/nginx/conf.d/app_tls.conf
-```
-
-### Environment variables
-
-All the environment variables are in a `.env` file, there is an `.env.example` with all the variables needed. Also there are collected in `app/config/settings.py`
-Suggested minimum `.env` adjustments for local dev
-- Set SECRET_KEY, DB credentials, and admin user credentials.
-- Leave VirusTotal / DefectDojo disabled unless you have valid API keys and services available.
-
-### Contributing
-
-If you like to contribute, see [Contributing](CONTRIBUTING.md)
-
----
+See [LICENSE](LICENSE).
