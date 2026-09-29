@@ -136,7 +136,7 @@ class Finding(models.Model):
     mitigation = models.TextField(blank=True, null=True)
     cwe = models.ForeignKey(Cwe, on_delete=models.CASCADE)
     risk = models.ForeignKey(Risk, on_delete=models.CASCADE, null=True)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     defectdojo_id = models.IntegerField(blank=True, default=0)
     created_on = models.DateTimeField(auto_now_add=True, null=True)
     updated_on = models.DateTimeField(auto_now=True, null=True)

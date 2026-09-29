@@ -13,7 +13,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from app import analysis
-from app.models import Application, Scan
+from app.models import Application, Cwe, Finding, Scan
 from app.worker import tasks
 
 
@@ -283,6 +283,133 @@ class ScanStateTests(SimpleTestCase):
 
 
 class GuestScanAccessTests(TestCase):
+    def test_guest_scan_can_store_a_finding_without_a_user(self):
+        scan = Scan.objects.create(
+            description='Guest upload',
+            apk=SimpleUploadedFile('guest.apk', b'APK test data'),
+        )
+        cwe = Cwe.objects.create(cwe=1, description='Test weakness')
+
+        finding = Finding.objects.create(
+            scan=scan,
+            name='Guest finding',
+            path='src/Main.java',
+            line_number=1,
+            line='example',
+            snippet='example',
+            status='TD',
+            severity='LO',
+            description='Finding created by a guest scan',
+            cwe=cwe,
+        )
+
+        self.assertIsNone(finding.user)
+
+    @patch('app.views.analysis.get_lines', return_value=['example'])
+    @patch('app.views.task_create_scan.delay')
+    def test_guest_can_read_findings_for_its_scan_only(self, delay, get_lines):
+        delay.return_value.id = 'guest-scan-task'
+        self.client.get(reverse('create_scan'))
+        response = self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Guest finding access',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        scan = Scan.objects.get(description='Guest finding access')
+        cwe = Cwe.objects.create(cwe=2, description='Test weakness')
+        finding = Finding.objects.create(
+            scan=scan,
+            name='Guest finding',
+            path='src/Main.java',
+            line_number=1,
+            line='example',
+            snippet='example',
+            status='TD',
+            severity='LO',
+            description='Finding created by a guest scan',
+            cwe=cwe,
+        )
+
+        self.assertEqual(
+            self.client.get(reverse('findings', kwargs={'scan_id': scan.id})).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse('finding', kwargs={'id': finding.id})).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse('finding_view_file', kwargs={'id': finding.id})).status_code,
+            200,
+        )
+        self.assertEqual(self.client.get('/api/v1/finding/{}/'.format(finding.id)).status_code, 200)
+
+        other_browser = self.client_class()
+        self.assertEqual(
+            other_browser.get(reverse('findings', kwargs={'scan_id': scan.id})).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.get(reverse('finding', kwargs={'id': finding.id})).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.get(reverse('finding_view_file', kwargs={'id': finding.id})).status_code,
+            404,
+        )
+        self.assertEqual(other_browser.get('/api/v1/finding/{}/'.format(finding.id)).status_code, 404)
+        self.assertEqual(
+            other_browser.post(
+                reverse('findings'),
+                {
+                    'scan': scan.id,
+                    str(finding.id): 'on',
+                    'delete_findings': 'Delete Findings',
+                },
+            ).status_code,
+            302,
+        )
+        self.assertTrue(Finding.objects.filter(pk=finding.id).exists())
+
+        other_browser.force_login(User.objects.create_user('finding-outsider', password='password'))
+        global_findings = other_browser.get(reverse('findings'))
+        self.assertEqual(global_findings.status_code, 200)
+        self.assertNotIn(finding, global_findings.context['findings'])
+        self.assertEqual(
+            other_browser.get(reverse('findings', kwargs={'scan_id': scan.id})).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.get(reverse('finding', kwargs={'id': finding.id})).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.get(reverse('edit_finding', kwargs={'id': finding.id})).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.post(
+                reverse('findings'),
+                {
+                    'scan': scan.id,
+                    str(finding.id): 'on',
+                    'delete_findings': 'Delete Findings',
+                },
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_browser.post(
+                reverse('create_finding'),
+                {'scan': scan.id},
+            ).status_code,
+            404,
+        )
+        self.assertTrue(Finding.objects.filter(pk=finding.id).exists())
+
     @patch('app.views.task_create_scan.delay')
     def test_guest_can_start_a_scan_and_only_its_session_can_access_it(self, delay):
         delay.return_value.id = 'guest-scan-task'
