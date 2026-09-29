@@ -4,6 +4,8 @@ Security analysis for Android APKs, from upload to actionable findings.
 
 Mobile Audit is a Django application for static application security testing and malware inspection. It extracts APK metadata, detects risky implementation patterns, organizes findings by severity, and provides a focused workspace for review and reporting.
 
+![Application dashboard with scan summaries](app/static/screenshots/dashboard.png)
+
 ## Get started
 
 Docker Compose runs the complete local stack: Django, PostgreSQL, RabbitMQ, Celery, and Nginx.
@@ -37,11 +39,6 @@ Before using Mobile Audit outside a local environment, replace the example secre
 
 ## Interface tour
 
-### Application dashboard
-
-Track applications, scan progress, and severity totals from one responsive workspace.
-
-![Application dashboard with scan summaries](app/static/screenshots/dashboard.png)
 
 ### Application workspace
 
@@ -68,7 +65,7 @@ Analysis rules can be enabled or disabled from the **Patterns** screen. Some har
 
 ## Architecture
 
-![Mobile Audit architecture](app/static/architecture.png)
+![Mobile Audit architecture](app/static/screenshots/architecture.png)
 
 | Service | Responsibility |
 | --- | --- |
@@ -135,5 +132,4 @@ openssl req -x509 -nodes -days 1 -newkey rsa:4096 \
 - [Contributing guide](CONTRIBUTING.md)
 - [DeepWiki documentation](https://deepwiki.com/mpast/mobileAudit)
 - [Docker Hub image](https://hub.docker.com/repository/docker/mpast/mobile_audit)
-- [Data model diagram](app/static/models.png)
 - [License](LICENSE)
