@@ -365,18 +365,27 @@ label { margin-bottom: .4rem; color: var(--ink-700); font-size: .875rem; font-we
 }
 
 .metric-card__icon {
-    display: grid;
+    display: inline-flex;
     width: 2.7rem;
     height: 2.7rem;
     flex: 0 0 2.7rem;
-    place-items: center;
+    align-items: center;
+    justify-content: center;
     border-radius: .75rem;
+    line-height: 1;
+}
+
+.metric-card__icon > .fas {
+    width: 1.1rem;
+    height: 1.1rem;
+    line-height: 1.1rem;
+    text-align: center;
 }
 
 .metric-card__icon--primary { color: var(--primary-700); background: #eef2ff; }
 .metric-card__icon--accent { color: #0e7490; background: #ecfeff; }
 .metric-card__icon--success { color: #047857; background: #ecfdf5; }
-.metric-card strong, .metric-card span { display: block; }
+.metric-card > div > strong, .metric-card > div > span { display: block; }
 .metric-card strong { color: var(--ink-950); font-size: 1.15rem; }
 .metric-card div > span { color: var(--ink-500); font-size: .8rem; }
 .application-list { display: grid; gap: 1rem; }
