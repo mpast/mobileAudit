@@ -5,7 +5,7 @@ from app.models import *
 class ScanSerializer(serializers.ModelSerializer):
     class Meta:   
         model = Scan
-        fields = '__all__'
+        exclude = ('guest_session_fingerprint',)
         read_only_fields = ('id', 'created_on', 'updated_on', 'user', 'status', 'progress', 'apk_name', 'findings', 'file_size', 'md5', 'sha1', 'sha256', 'package', 'icon', 'version_code', 'version_name', 'min_sdk_version', 'max_sdk_version', 'target_sdk_version', 'effective_target_sdk_version' ,'manifest')
 
           

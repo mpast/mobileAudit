@@ -13,7 +13,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from app import analysis
-from app.models import Application, Cwe, Finding, Scan
+from app.models import Application, Cwe, Finding, Permission, PermissionType, Scan
 from app.worker import tasks
 
 
@@ -283,6 +283,74 @@ class ScanStateTests(SimpleTestCase):
 
 
 class GuestScanAccessTests(TestCase):
+    @patch('app.views.task_create_scan.delay')
+    def test_cookieless_guest_html_post_requires_session_handshake(self, delay):
+        delay.return_value.id = 'guest-html-scan-task'
+        response = self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Handshake scan',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertContains(response, 'Guest session established', status_code=409)
+        self.assertFalse(Scan.objects.filter(description='Handshake scan').exists())
+        delay.assert_not_called()
+
+        response = self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Handshake scan',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Scan.objects.filter(description='Handshake scan').exists())
+        delay.assert_called_once()
+
+    @patch('app.api.task_create_scan.delay')
+    def test_cookieless_guest_api_posts_cannot_create_orphaned_scans(self, delay):
+        delay.return_value.id = 'guest-api-scan-task'
+        other_client = self.client_class()
+
+        first_response = self.client.post(
+            '/api/v1/scan/',
+            {
+                'description': 'API handshake scan',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+        concurrent_response = other_client.post(
+            '/api/v1/scan/',
+            {
+                'description': 'Concurrent API handshake scan',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+
+        self.assertEqual(first_response.status_code, 409)
+        self.assertEqual(concurrent_response.status_code, 409)
+        self.assertEqual(Scan.objects.count(), 0)
+        self.assertNotEqual(self.client.session.session_key, other_client.session.session_key)
+        delay.assert_not_called()
+
+        retry_response = self.client.post(
+            '/api/v1/scan/',
+            {
+                'description': 'API handshake scan',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+
+        self.assertEqual(retry_response.status_code, 201)
+        scan = Scan.objects.get(description='API handshake scan')
+        self.assertTrue(scan.guest_session_fingerprint)
+        self.assertEqual(other_client.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 404)
+        delay.assert_called_once()
+
     def test_guest_scan_can_store_a_finding_without_a_user(self):
         scan = Scan.objects.create(
             description='Guest upload',
@@ -413,6 +481,7 @@ class GuestScanAccessTests(TestCase):
     @patch('app.views.task_create_scan.delay')
     def test_guest_can_start_a_scan_and_only_its_session_can_access_it(self, delay):
         delay.return_value.id = 'guest-scan-task'
+        self.client.get(reverse('create_scan'))
         apk = SimpleUploadedFile(
             'guest.apk',
             b'APK test data',
@@ -428,16 +497,100 @@ class GuestScanAccessTests(TestCase):
         scan = Scan.objects.get(description='Guest upload')
         self.assertIsNone(scan.user)
         self.assertIsNone(scan.app)
+        self.assertTrue(scan.guest_session_fingerprint)
         self.assertEqual(response['Location'], reverse('scan', kwargs={'id': scan.id}))
 
         self.assertEqual(self.client.get(reverse('scan', kwargs={'id': scan.id})).status_code, 200)
         self.assertEqual(self.client.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 200)
-        self.assertEqual(self.client.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 200)
+        api_response = self.client.get('/api/v1/scan/{}/'.format(scan.id))
+        self.assertEqual(api_response.status_code, 200)
+        self.assertNotIn('guest_session_fingerprint', api_response.data)
 
         other_browser = self.client_class()
         self.assertEqual(other_browser.get(reverse('scan', kwargs={'id': scan.id})).status_code, 404)
         self.assertEqual(other_browser.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 404)
         self.assertEqual(other_browser.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 404)
+
+    @patch('app.views.task_create_scan.delay')
+    def test_guest_scan_poll_survives_session_capability_overwrite(self, delay):
+        delay.return_value.id = 'guest-scan-task'
+        self.assertEqual(self.client.get(reverse('create_scan')).status_code, 200)
+        original_session_key = self.client.session.session_key
+        stale_session = self.client.session
+        response = self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Guest polling',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        scan = Scan.objects.get(description='Guest polling')
+        self.assertEqual(self.client.session.session_key, original_session_key)
+        cwe = Cwe.objects.create(cwe=3, description='Test weakness')
+        finding = Finding.objects.create(
+            scan=scan,
+            name='Durable guest finding',
+            path='src/Main.java',
+            line_number=1,
+            line='example',
+            snippet='example',
+            status='TD',
+            severity='LO',
+            description='Finding for durable guest access',
+            cwe=cwe,
+        )
+        permission_type = PermissionType.objects.create(
+            name='android.permission.TEST',
+            type='test',
+            default_severity='LO',
+        )
+        permission = Permission.objects.create(
+            scan=scan,
+            permission=permission_type,
+            severity='LO',
+        )
+
+        stale_session['concurrent_request_finished'] = True
+        stale_session.save()
+
+        self.assertEqual(
+            self.client.get(reverse('scan_state', kwargs={'id': scan.id})).status_code,
+            200,
+        )
+        self.assertIn(scan.id, [item.id for item in self.client.get(reverse('home')).context['scans']])
+        self.assertEqual(self.client.get('/api/v1/scan/{}/'.format(scan.id)).status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/finding/{}/'.format(finding.id)).status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/permission/{}/'.format(permission.id)).status_code, 200)
+
+    @patch('app.views.task_create_scan.delay')
+    def test_guest_scan_access_rebinds_after_login_rotates_session_key(self, delay):
+        delay.return_value.id = 'guest-scan-task'
+        self.client.get(reverse('create_scan'))
+        original_session_key = self.client.session.session_key
+        self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Guest login rotation',
+                'apk': SimpleUploadedFile('guest.apk', b'APK test data'),
+            },
+        )
+        scan = Scan.objects.get(description='Guest login rotation')
+        original_fingerprint = scan.guest_session_fingerprint
+
+        self.client.force_login(User.objects.create_user('guest-owner-login', password='password'))
+        self.assertNotEqual(self.client.session.session_key, original_session_key)
+        self.assertEqual(self.client.get(reverse('scan', kwargs={'id': scan.id})).status_code, 200)
+        scan.refresh_from_db()
+        self.assertNotEqual(scan.guest_session_fingerprint, original_fingerprint)
+
+        session = self.client.session
+        session.pop('guest_scan_capabilities')
+        session.save()
+        self.assertEqual(self.client.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 200)
+
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('scan_state', kwargs={'id': scan.id})).status_code, 404)
 
     def test_other_authenticated_browser_cannot_export_guest_scan(self):
         scan = Scan.objects.create(

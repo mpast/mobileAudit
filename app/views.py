@@ -13,12 +13,15 @@ from django.http import Http404, HttpResponse
 from django.template.loader import render_to_string
 import pdfkit, requests, logging
 from app.access import (
+    GUEST_SESSION_HANDSHAKE_MESSAGE,
     can_access_app,
     can_access_scan,
+    ensure_guest_session,
     grant_guest_app_access,
     grant_guest_scan_access,
     guest_app_ids,
     guest_scan_ids,
+    has_established_guest_session,
 )
 from app.forms import GuestScanForm, ScanForm, ApplicationForm, FindingForm, SignUpForm, ProfileForm
 from app import analysis
@@ -207,6 +210,19 @@ def scan(request, id):
     })
 
 def create_scan(request, app_id = ''):
+    if not request.user.is_authenticated:
+        if request.method == 'POST' and not has_established_guest_session(request):
+            ensure_guest_session(request)
+            form = GuestScanForm(request.POST, request.FILES)
+            form.add_error(None, GUEST_SESSION_HANDSHAKE_MESSAGE)
+            return render(
+                request,
+                'create_scan.html',
+                {'form': form, 'guest_scan': True},
+                status=409,
+            )
+        ensure_guest_session(request)
+
     app = None
     if app_id:
         app = get_object_or_404(Application, pk=app_id)
