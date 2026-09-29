@@ -1,6 +1,7 @@
 from androguard.core.apk import APK
 from django.conf import settings
 import logging, os, threading, hashlib, re, linecache, base64, urllib, shutil, signal, subprocess, tempfile
+from django.core.exceptions import SuspiciousFileOperation
 from app.models import *
 from pygments import highlight
 from pygments.lexers import PythonLexer
@@ -499,9 +500,16 @@ def find_patterns(i, prev_line, line, name, dir, scan):
 def get_lines(finding='', path=''):
     formatter = HtmlFormatter(linenos=False, cssclass="source")
     if (finding):
-        APK_PATH = settings.BASE_DIR + finding.scan.apk.url
-        DECOMPILE_PATH = os.path.splitext(APK_PATH)[0]
-        path = DECOMPILE_PATH + finding.path
+        decompile_path = os.path.realpath(os.path.splitext(finding.scan.apk.path)[0])
+        path = os.path.realpath(
+            os.path.join(decompile_path, finding.path.lstrip('/\\'))
+        )
+        try:
+            contained = os.path.commonpath([decompile_path, path]) == decompile_path
+        except ValueError:
+            contained = False
+        if not contained:
+            raise SuspiciousFileOperation('Finding path is outside the scan decompile directory.')
     lines = []
     try:
         extension = os.path.splitext(path)[1]
