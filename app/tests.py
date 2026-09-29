@@ -7,13 +7,14 @@ import tempfile
 from unittest.mock import MagicMock, call, patch
 
 from django.contrib.auth.models import User
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from app import analysis
-from app.models import Application, Cwe, Finding, Permission, PermissionType, Scan
+from app.models import Application, Cwe, File, Finding, Permission, PermissionType, Scan
 from app.worker import tasks
 
 
@@ -438,7 +439,7 @@ class GuestScanAccessTests(TestCase):
                     'delete_findings': 'Delete Findings',
                 },
             ).status_code,
-            302,
+            404,
         )
         self.assertTrue(Finding.objects.filter(pk=finding.id).exists())
 
@@ -732,3 +733,371 @@ class OwnershipIsolationTests(TestCase):
         self.assertNotIn(self.scan.id, [item['id'] for item in scan_list.data['results']])
         self.assertEqual(api_client.get('/api/v1/app/{}/'.format(self.app.id)).status_code, 404)
         self.assertEqual(api_client.get('/api/v1/scan/{}/'.format(self.scan.id)).status_code, 404)
+
+
+class AuthorizationRegressionTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('regression-owner', password='password')
+        self.other_user = User.objects.create_user('regression-other', password='password')
+        self.owner_app = Application.objects.create(
+            name='Owner app',
+            description='Owner app',
+            user=self.owner,
+        )
+        self.other_app = Application.objects.create(
+            name='Other app',
+            description='Other app',
+            user=self.other_user,
+        )
+        self.owner_scan = self.create_scan(self.owner, self.owner_app, 'owner')
+        self.owner_scan_two = self.create_scan(self.owner, self.owner_app, 'owner-two')
+        self.other_scan = self.create_scan(self.other_user, self.other_app, 'other')
+        self.cwe = Cwe.objects.create(cwe=9001, description='Regression weakness')
+
+    def create_scan(self, user, app, name):
+        return Scan.objects.create(
+            app=app,
+            user=user,
+            description=name,
+            apk=SimpleUploadedFile('{}.apk'.format(name), b'APK test data'),
+        )
+
+    def create_finding(self, scan, name='Finding'):
+        scan.findings += 1
+        scan.save(update_fields=['findings'])
+        return Finding.objects.create(
+            scan=scan,
+            user=scan.user,
+            name=name,
+            path='/sources/Main.java',
+            line_number=1,
+            line='example',
+            snippet='example',
+            status='TD',
+            severity='LO',
+            description='Regression finding',
+            cwe=self.cwe,
+        )
+
+    def grant_guest_scan(self, client, scan):
+        session = client.session
+        session['guest_scan_capabilities'] = {str(scan.id): 'test-capability'}
+        session.save()
+
+    def finding_payload(self, scan):
+        return {
+            'scan': scan.id,
+            'name': 'API finding',
+            'path': '/sources/Main.java',
+            'line_number': 1,
+            'line': 'example',
+            'snippet': 'example',
+            'status': 'TD',
+            'severity': 'LO',
+            'description': 'API regression finding',
+            'cwe': self.cwe.pk,
+        }
+
+    def test_findings_mutation_allows_owner_and_rejects_unrelated_user(self):
+        finding = self.create_finding(self.owner_scan)
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'edit_findings': 'Edit Findings',
+                'severity': 'HI',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        finding.refresh_from_db()
+        self.assertEqual(finding.severity, 'HI')
+
+        other_client = self.client_class()
+        other_client.force_login(self.other_user)
+        response = other_client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'edit_findings': 'Edit Findings',
+                'severity': 'CR',
+            },
+        )
+        self.assertEqual(response.status_code, 404)
+        finding.refresh_from_db()
+        self.assertEqual(finding.severity, 'HI')
+
+    def test_findings_mutation_allows_valid_guest_and_rejects_unrelated_guest(self):
+        guest_scan = Scan.objects.create(
+            description='Guest scan',
+            apk=SimpleUploadedFile('guest-regression.apk', b'APK test data'),
+        )
+        first = self.create_finding(guest_scan, 'First guest finding')
+        second = self.create_finding(guest_scan, 'Second guest finding')
+        self.grant_guest_scan(self.client, guest_scan)
+
+        response = self.client.post(
+            reverse('findings'),
+            {
+                'scan': guest_scan.id,
+                str(first.id): 'on',
+                str(second.id): 'on',
+                'delete_findings': 'Delete Findings',
+            },
+        )
+
+        self.assertRedirects(response, reverse('scan', kwargs={'id': guest_scan.id}))
+        self.assertFalse(Finding.objects.filter(pk__in=[first.id, second.id]).exists())
+        guest_scan.refresh_from_db()
+        self.assertEqual(guest_scan.findings, 0)
+
+        remaining = self.create_finding(guest_scan, 'Remaining guest finding')
+        unrelated_guest = self.client_class()
+        response = unrelated_guest.post(
+            reverse('findings'),
+            {
+                'scan': guest_scan.id,
+                str(remaining.id): 'on',
+                'delete_findings': 'Delete Findings',
+            },
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Finding.objects.filter(pk=remaining.id).exists())
+
+    def test_findings_mutation_requires_scan_and_rejects_scan_finding_mismatch(self):
+        finding = self.create_finding(self.owner_scan_two)
+        self.client.force_login(self.owner)
+
+        missing_scan = self.client.post(
+            reverse('findings'),
+            {
+                str(finding.id): 'on',
+                'edit_findings': 'Edit Findings',
+                'severity': 'CR',
+            },
+        )
+        mismatch = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'edit_findings': 'Edit Findings',
+                'severity': 'CR',
+            },
+        )
+
+        self.assertEqual(missing_scan.status_code, 404)
+        self.assertEqual(mismatch.status_code, 404)
+        finding.refresh_from_db()
+        self.assertEqual(finding.severity, 'LO')
+
+    @override_settings(DEFECTDOJO_ENABLED=True)
+    @patch('app.views.analysis.create_finding_on_dojo')
+    def test_findings_rejects_delete_combined_with_push_or_edit(self, create_on_dojo):
+        finding = self.create_finding(self.owner_scan)
+        self.client.force_login(self.owner)
+
+        delete_and_push = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'delete_findings': 'Delete Findings',
+                'push_dojo': 'Push to DefectDojo',
+            },
+        )
+        delete_and_edit = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'delete_findings': 'Delete Findings',
+                'edit_findings': 'Edit Findings',
+                'severity': 'CR',
+            },
+        )
+
+        self.assertEqual(delete_and_push.status_code, 400)
+        self.assertEqual(delete_and_edit.status_code, 400)
+        self.assertTrue(Finding.objects.filter(pk=finding.id).exists())
+        finding.refresh_from_db()
+        self.assertEqual(finding.severity, 'LO')
+        self.owner_scan.refresh_from_db()
+        self.assertEqual(self.owner_scan.findings, 1)
+        create_on_dojo.assert_not_called()
+
+    @override_settings(DEFECTDOJO_ENABLED=True)
+    @patch('app.views.analysis.create_finding_on_dojo')
+    def test_findings_allows_edit_combined_with_push(self, create_on_dojo):
+        finding = self.create_finding(self.owner_scan)
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(finding.id): 'on',
+                'edit_findings': 'Edit Findings',
+                'push_dojo': 'Push to DefectDojo',
+                'severity': 'HI',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        finding.refresh_from_db()
+        self.assertEqual(finding.severity, 'HI')
+        create_on_dojo.assert_called_once()
+        self.assertEqual(create_on_dojo.call_args.args[0].pk, finding.pk)
+
+    def test_findings_batch_delete_reconciles_stale_count_atomically(self):
+        deleted = self.create_finding(self.owner_scan, 'Delete me')
+        remaining = self.create_finding(self.owner_scan, 'Keep me')
+        self.owner_scan.findings = 99
+        self.owner_scan.save(update_fields=['findings'])
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            reverse('findings'),
+            {
+                'scan': self.owner_scan.id,
+                str(deleted.id): 'on',
+                'delete_findings': 'Delete Findings',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('scan', kwargs={'id': self.owner_scan.id}),
+        )
+        self.assertFalse(Finding.objects.filter(pk=deleted.id).exists())
+        self.assertTrue(Finding.objects.filter(pk=remaining.id).exists())
+        self.owner_scan.refresh_from_db()
+        self.assertEqual(self.owner_scan.findings, 1)
+
+    @patch('app.views.analysis.get_lines', return_value=['example'])
+    def test_view_file_authorizes_through_parent_scan(self, get_lines):
+        owner_file = File.objects.create(
+            scan=self.owner_scan,
+            type='other',
+            name='Main.java',
+            path='/tmp/Main.java',
+        )
+        self.client.force_login(self.owner)
+        self.assertEqual(
+            self.client.get(reverse('view_file', kwargs={'id': owner_file.id})).status_code,
+            200,
+        )
+
+        other_client = self.client_class()
+        other_client.force_login(self.other_user)
+        self.assertEqual(
+            other_client.get(reverse('view_file', kwargs={'id': owner_file.id})).status_code,
+            404,
+        )
+
+        guest_scan = Scan.objects.create(
+            description='Guest file scan',
+            apk=SimpleUploadedFile('guest-file.apk', b'APK test data'),
+        )
+        guest_file = File.objects.create(
+            scan=guest_scan,
+            type='other',
+            name='Guest.java',
+            path='/tmp/Guest.java',
+        )
+        guest_client = self.client_class()
+        self.grant_guest_scan(guest_client, guest_scan)
+        self.assertEqual(
+            guest_client.get(reverse('view_file', kwargs={'id': guest_file.id})).status_code,
+            200,
+        )
+
+    def test_finding_api_rejects_cross_tenant_create_and_reparent(self):
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.owner)
+
+        create_response = api_client.post(
+            '/api/v1/finding/',
+            self.finding_payload(self.other_scan),
+            format='json',
+        )
+        self.assertEqual(create_response.status_code, 400)
+        self.assertFalse(Finding.objects.filter(name='API finding').exists())
+
+        authorized_create = api_client.post(
+            '/api/v1/finding/',
+            self.finding_payload(self.owner_scan),
+            format='json',
+        )
+        self.assertEqual(authorized_create.status_code, 201)
+        api_finding = Finding.objects.get(pk=authorized_create.data['id'])
+        authorized_reparent = api_client.patch(
+            '/api/v1/finding/{}/'.format(api_finding.id),
+            {'scan': self.owner_scan_two.id},
+            format='json',
+        )
+        self.assertEqual(authorized_reparent.status_code, 200)
+        api_finding.refresh_from_db()
+        self.assertEqual(api_finding.scan, self.owner_scan_two)
+
+        finding = self.create_finding(self.owner_scan)
+        update_response = api_client.patch(
+            '/api/v1/finding/{}/'.format(finding.id),
+            {'scan': self.other_scan.id},
+            format='json',
+        )
+        self.assertEqual(update_response.status_code, 400)
+        finding.refresh_from_db()
+        self.assertEqual(finding.scan, self.owner_scan)
+
+    def test_finding_api_list_and_scan_action_serialize_scoped_results(self):
+        owner_finding = self.create_finding(self.owner_scan, 'Owner API finding')
+        self.create_finding(self.other_scan, 'Other API finding')
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.owner)
+
+        list_response = api_client.get('/api/v1/finding/')
+        scan_response = api_client.get(
+            '/api/v1/finding/{}/scan/'.format(self.owner_scan.id)
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(scan_response.status_code, 200)
+        self.assertEqual(
+            [item['id'] for item in list_response.data['results']],
+            [owner_finding.id],
+        )
+        self.assertEqual(
+            [item['id'] for item in scan_response.data['results']],
+            [owner_finding.id],
+        )
+
+    @patch('app.views.task_create_scan.delay')
+    def test_create_scan_rejects_cross_tenant_application_assignment(self, delay):
+        delay.return_value.id = 'should-not-run'
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            reverse('create_scan'),
+            {
+                'description': 'Injected scan',
+                'apk': SimpleUploadedFile('injected.apk', b'APK test data'),
+                'app': self.other_app.id,
+                'defectdojo_id': 0,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Scan.objects.filter(description='Injected scan').exists())
+        delay.assert_not_called()
+
+    def test_finding_source_path_cannot_escape_decompile_root(self):
+        finding = self.create_finding(self.owner_scan)
+        finding.path = '../../../outside.txt'
+
+        with self.assertRaises(SuspiciousFileOperation):
+            analysis.get_lines(finding)

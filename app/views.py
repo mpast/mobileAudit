@@ -8,6 +8,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.template.loader import render_to_string
@@ -230,15 +231,22 @@ def create_scan(request, app_id = ''):
             raise Http404
     if request.method == 'POST':
         form_class = ScanForm if request.user.is_authenticated else GuestScanForm
-        form = form_class(request.POST, request.FILES)
+        form_kwargs = {}
+        if form_class is ScanForm:
+            form_kwargs['request'] = request
+        form = form_class(request.POST, request.FILES, **form_kwargs)
         if form.is_valid():
             scan = form.save(commit=False)
-            # Scans attached to a guest app stay session-owned even if the
-            # browser signs in after creating that app.
-            if request.user.is_authenticated and (app is None or app.user_id is not None):
-                scan.user = request.user
             if app is not None:
                 scan.app = app
+            if scan.app_id is not None and not can_access_app(request, scan.app):
+                raise Http404
+            # Scans attached to a guest app stay session-owned even if the
+            # browser signs in after creating that app.
+            if request.user.is_authenticated and (
+                scan.app_id is None or scan.app.user_id is not None
+            ):
+                scan.user = request.user
             scan.status = 'In Progress'
             scan.progress = 1
             scan.save()
@@ -251,10 +259,13 @@ def create_scan(request, app_id = ''):
             return redirect(reverse('scan', kwargs={"id": scan.id}))
     else:
         form_class = ScanForm if request.user.is_authenticated else GuestScanForm
+        form_kwargs = {}
+        if form_class is ScanForm:
+            form_kwargs['request'] = request
         if (app_id == ''):
-            form = form_class()
+            form = form_class(**form_kwargs)
         else:
-            form = form_class(initial={'app': app})
+            form = form_class(initial={'app': app}, **form_kwargs)
     if (settings.DEFECTDOJO_ENABLED == False) and 'defectdojo_id' in form.fields:
         form.fields.pop('defectdojo_id')
     return render(request, 'create_scan.html', {
@@ -329,9 +340,6 @@ def create_app(request):
     })
 
 def findings(request, scan_id=''):
-    if request.method == 'POST' and not request.user.is_authenticated:
-        return redirect_to_login(request.get_full_path())
-
     findings = []
     scan = ''
     if request.method == 'POST':
@@ -341,41 +349,48 @@ def findings(request, scan_id=''):
         status = request.POST.get("status", "")
         severity = request.POST.get("severity", "")
         push_dojo = request.POST.get("push_dojo", "")
+        if delete and (edit or push_dojo):
+            return HttpResponse(status=400)
         scan = request.POST.get("scan", "")
         requested_scan = None
         if scan:
             requested_scan = _get_accessible_scan_or_404(request, scan)
-        if delete and requested_scan is None:
+        if (delete or edit or push_dojo) and requested_scan is None:
             raise Http404
-        findings_list = request.POST.items()
-        ok = False
-        for finding, value in findings_list:
+        selected_findings = []
+        for finding_id in request.POST:
             try:
-                finding = int(finding)
-                if isinstance(finding, int):
-                    f = _get_accessible_finding_or_404(request, finding)
-                    if requested_scan is not None and f.scan_id != requested_scan.id:
-                        raise Http404
-                    if (delete):
-                        f.delete()
-                        requested_scan.findings = requested_scan.findings - 1
-                        requested_scan.save()
-                        return redirect(reverse('scan', kwargs={"id": scan}))
-                    else:
-                        if (edit):
-                            if (status):
-                                f.status = status
-                            if (severity):
-                                f.severity = severity
-                            f.save()
-                            ok = True
-                        findings.append(f)
-                    if (push_dojo and settings.DEFECTDOJO_ENABLED):
-                        analysis.create_finding_on_dojo(f)
-            except Http404:
-                raise
-            except Exception as e:
-                logger.debug(e)
+                finding_id = int(finding_id)
+            except (TypeError, ValueError):
+                continue
+            finding = _get_accessible_finding_or_404(request, finding_id)
+            if requested_scan is not None and finding.scan_id != requested_scan.id:
+                raise Http404
+            selected_findings.append(finding)
+
+        if delete:
+            with transaction.atomic():
+                locked_scan = Scan.objects.select_for_update().get(pk=requested_scan.pk)
+                Finding.objects.filter(
+                    scan=locked_scan,
+                    pk__in=[finding.pk for finding in selected_findings],
+                ).delete()
+                locked_scan.findings = Finding.objects.filter(scan=locked_scan).count()
+                locked_scan.save(update_fields=['findings'])
+            return redirect(reverse('scan', kwargs={"id": scan}))
+
+        ok = False
+        for selected_finding in selected_findings:
+            if edit:
+                if status:
+                    selected_finding.status = status
+                if severity:
+                    selected_finding.severity = severity
+                selected_finding.save()
+                ok = True
+            findings.append(selected_finding)
+            if push_dojo and settings.DEFECTDOJO_ENABLED:
+                analysis.create_finding_on_dojo(selected_finding)
         if (edit and ok):
             messages.success(request, 'Edited successfully')
     else:
@@ -465,9 +480,10 @@ def finding_view_file(request, id):
         'finding': finding.line_number,
     })
 
-@login_required
 def view_file(request, id):
-    f = File.objects.get(pk=id)
+    f = get_object_or_404(File.objects.select_related('scan'), pk=id)
+    if not can_access_scan(request, f.scan):
+        raise Http404
     lines = analysis.get_lines(path=f.path)
     return render(request, 'file.html', {
         'lines': lines,

@@ -12,6 +12,7 @@ from django_filters import rest_framework as filters
 from app.access import (
     GUEST_SESSION_HANDSHAKE_MESSAGE,
     can_access_app,
+    can_access_scan,
     ensure_guest_session,
     grant_guest_app_access,
     grant_guest_scan_access,
@@ -103,8 +104,32 @@ class FindingViewSet(viewsets.ModelViewSet):
             )
         return Finding.objects.filter(scan_id__in=guest_scan_ids(self.request))
 
+    def get_serializer(self, *args, **kwargs):
+        serializer = super().get_serializer(*args, **kwargs)
+        item_serializer = getattr(serializer, 'child', serializer)
+        scan_field = item_serializer.fields.get('scan')
+        if scan_field is not None:
+            scan_queryset = Scan.objects.filter(
+                pk__in=guest_scan_ids(self.request)
+            )
+            if self.request.user.is_authenticated:
+                scan_queryset = Scan.objects.filter(
+                    Q(user=self.request.user) | Q(pk__in=guest_scan_ids(self.request))
+                )
+            scan_field.queryset = scan_queryset
+        return serializer
+
     def perform_create(self, serializer):
-        obj = serializer.save(user=self.request.user)
+        scan = serializer.validated_data['scan']
+        if not can_access_scan(self.request, scan):
+            raise PermissionDenied('You do not have access to this scan.')
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        scan = serializer.validated_data.get('scan', serializer.instance.scan)
+        if not can_access_scan(self.request, scan):
+            raise PermissionDenied('You do not have access to this scan.')
+        serializer.save()
 
            
     @action(detail=True, methods=['GET'], name='Get findings for scan')

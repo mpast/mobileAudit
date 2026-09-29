@@ -3,6 +3,9 @@ from app.models import *
 from django.forms import ModelChoiceField
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.db.models import Q
+
+from app.access import guest_app_ids
 
 class ApplicationModelChoiceField(ModelChoiceField):
     def label_from_instance(self, obj):
@@ -40,6 +43,20 @@ class ProfileForm(forms.ModelForm):
 
 class ScanForm(forms.ModelForm):
     app = ApplicationModelChoiceField(queryset=Application.objects.all())
+
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if request is None:
+            self.fields['app'].queryset = Application.objects.none()
+        elif request.user.is_authenticated:
+            self.fields['app'].queryset = Application.objects.filter(
+                Q(user=request.user) | Q(pk__in=guest_app_ids(request))
+            )
+        else:
+            self.fields['app'].queryset = Application.objects.filter(
+                pk__in=guest_app_ids(request)
+            )
+
     class Meta:   
         model = Scan
         fields = ('description', 'apk', 'app', 'defectdojo_id')
