@@ -1,10 +1,11 @@
-FROM python:3.12-bookworm@sha256:9bed8554e926c07c6f908841d5ee88c33e8df9236b191526bbce81a9062ab43a
+FROM python:3.12-bookworm@sha256:9bed8554e926c07b6f908841d5ee88c33e8df9236b191526bbce81a9062ab43
 
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
 	apt-get install -y ca-certificates-java --no-install-recommends && \
-	apt-get install -y openjdk-17-jdk p11-kit wkhtmltopdf libqt5gui5 wget unzip && \
+	apt-get install -y openjdk-17-jdk p11-kit wkhtmltopdf libqt5gui5 wget unzip \
+		libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info && \
 	apt-get clean && \
 	update-ca-certificates -f
 

@@ -12,7 +12,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.template.loader import render_to_string
-import pdfkit, requests, logging
+from weasyprint import HTML
+import requests, logging
 from app.access import (
     GUEST_SESSION_HANDSHAKE_MESSAGE,
     can_access_app,
@@ -103,7 +104,7 @@ def user_profile(request):
             user.profile.first_name = form.cleaned_data.get('first_name')
             user.profile.last_name = form.cleaned_data.get('last_name')
             user.profile.email = form.cleaned_data.get('email')
-            user.save()       
+            user.save()
             messages.success(request, 'Form submission successful')
     else:
         form = ProfileForm(instance=request.user.profile)
@@ -580,12 +581,8 @@ def export(request, id):
     }
 
     html = render_to_string('export.html', c, request=request)
-    options = {
-        'page-size': 'Letter',
-        'encoding': "UTF-8",
-    }
-    pdf = pdfkit.from_string(html, False, options)
-    
+    pdf = HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = "attachment; filename = scan.pdf"
+    response['Content-Disposition'] = 'attachment; filename="scan.pdf"'
     return response
