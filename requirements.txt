@@ -67,7 +67,7 @@ stack-data==0.6.3
 traitlets==5.14.1
 tzlocal==5.4.4
 uritemplate==4.1.1
-urllib3==2.7.0
+urllib3==2.8.0
 uWSGI==2.0.31
 vine==5.1.0
 wcwidth==0.2.13
