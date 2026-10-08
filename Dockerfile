@@ -1,15 +1,16 @@
-FROM python:3.12-bookworm@sha256:9bed8554e926c07c6f908841d5ee88c33e8df9236b191526bbce81a9062ab43a
+FROM python:3.12-bookworm@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b
 
 # Update and package installation
 RUN apt-get update && \
 	apt-get clean && \
 	apt-get install -y ca-certificates-java --no-install-recommends && \
-	apt-get install -y openjdk-17-jdk p11-kit wkhtmltopdf libqt5gui5 wget unzip && \
+	apt-get install -y openjdk-17-jdk p11-kit wkhtmltopdf libqt5gui5 wget unzip \
+		libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info && \
 	apt-get clean && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.5.5
+ENV JADX_VERSION=1.5.6
 
 RUN \
     wget -q "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" -O /tmp/jadx.zip && \
@@ -53,9 +54,9 @@ RUN pip install --upgrade pip \
 	&& pip install -r requirements.txt
 
 # Encoding configuration
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV PYTHONIOENCODING utf8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV PYTHONIOENCODING=utf8
 
 # Logs
 RUN mkdir -p app/logs
