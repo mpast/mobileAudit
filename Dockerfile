@@ -10,7 +10,7 @@ RUN apt-get update && \
 	update-ca-certificates -f
 
 # Get JADX Tool
-ENV JADX_VERSION 1.5.5
+ENV JADX_VERSION=1.5.6
 
 RUN \
     wget -q "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip" -O /tmp/jadx.zip && \
@@ -54,9 +54,9 @@ RUN pip install --upgrade pip \
 	&& pip install -r requirements.txt
 
 # Encoding configuration
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV PYTHONIOENCODING utf8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV PYTHONIOENCODING=utf8
 
 # Logs
 RUN mkdir -p app/logs
