@@ -73,4 +73,4 @@ vine==5.1.0
 wcwidth==0.2.13
 weasyprint>=64.0
 zipp>=3.19.1
-setuptools==83.0.0
+setuptools==84.1.0
