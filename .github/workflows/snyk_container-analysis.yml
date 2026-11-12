@@ -8,18 +8,21 @@
 
 name: Snyk Container
 on: push
+permissions:
+  contents: read
+  security-events: write
 jobs:
   snyk:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Build a Docker image
       run: docker build -t mpast/mobile_audit:latest .
     - name: Run Snyk to check Docker image for vulnerabilities
       # Snyk can be used to break the build when it detects vulnerabilities.
       # In this case we want to upload the issues to GitHub Code Scanning
       continue-on-error: true
-      uses: snyk/actions/docker@master
+      uses: snyk/actions/docker@11b673cfb4b0dc0d860a1323caa199d54950dcce # master
       env:
         # In order to use the Snyk Action you will need to have a Snyk API token.
         # More details in https://github.com/snyk/actions#getting-your-snyk-token
@@ -28,7 +31,66 @@ jobs:
       with:
         image: mpast/mobile_audit:latest
         args: --file=Dockerfile
+    - name: Normalize optional Snyk SARIF metadata
+      run: |
+        python3 - <<'PY'
+        import json
+        import math
+        import re
+        from pathlib import Path
+
+        report = Path("snyk.sarif")
+        if not report.is_file():
+            raise SystemExit("Snyk did not generate snyk.sarif; check the scan output.")
+
+        sarif = json.loads(report.read_text())
+        removed = 0
+        removed_severities = 0
+        for run in sarif.get("runs", []):
+            tool = run.get("tool", {})
+            for component in [tool.get("driver", {}), *tool.get("extensions", [])]:
+                for rule in component.get("rules", []):
+                    properties = rule.get("properties", {})
+                    if "security-severity" not in properties:
+                        continue
+                    value = properties["security-severity"]
+                    valid_type = type(value) in (str, int, float)
+                    if isinstance(value, str):
+                        valid_type = re.fullmatch(
+                            r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?",
+                            value,
+                        ) is not None
+                    try:
+                        score = float(value) if valid_type else math.nan
+                    except (ValueError, OverflowError):
+                        score = math.nan
+                    if not math.isfinite(score) or not 0 <= score <= 10:
+                        del properties["security-severity"]
+                        removed_severities += 1
+                    elif not isinstance(value, str):
+                        properties["security-severity"] = str(value)
+            for result in run.get("results", []):
+                if "fixes" not in result:
+                    continue
+                valid_fixes = []
+                for fix in result["fixes"]:
+                    invalid = any(
+                        "text" in replacement.get("insertedContent", {})
+                        and not isinstance(replacement["insertedContent"]["text"], str)
+                        for change in fix.get("artifactChanges", [])
+                        for replacement in change.get("replacements", [])
+                    )
+                    if invalid:
+                        removed += 1
+                    else:
+                        valid_fixes.append(fix)
+                result["fixes"] = valid_fixes
+
+        Path("snyk.normalized.sarif").write_text(json.dumps(sarif, indent=2) + "\n")
+        print(f"Removed {removed} invalid optional SARIF fixes; findings preserved.")
+        print(f"Removed {removed_severities} invalid optional security severity scores.")
+        PY
     - name: Upload result to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
       with:
-        sarif_file: snyk.sarif
+        sarif_file: snyk.normalized.sarif
