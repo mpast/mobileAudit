@@ -1,6 +1,7 @@
 from androguard.core.apk import APK
 from django.conf import settings
 import logging, os, threading, hashlib, re, linecache, base64, urllib, shutil, signal, subprocess, tempfile
+from binascii import Error as Base64Error
 from django.core.exceptions import SuspiciousFileOperation
 from app.models import *
 from pygments import highlight
@@ -97,8 +98,8 @@ def analyze_apk(task, scan_id):
                 meta = {'current': scan.progress, 'total': 100, 'status': scan.status})
         scan.save()
         logger.debug(scan.status)
-        get_tree_dir(scan)
-        scan.status = 'Finished'
+        detection_errors = get_tree_dir(scan)
+        scan.status = 'Finished with detection errors' if detection_errors else 'Finished'
         scan.progress = 100
         scan.finished_on = datetime.now()
         scan.save()
@@ -363,79 +364,108 @@ def get_info_certificate(a, scan):
     return certificates
 
 
+ASSET_TEXT_EXTENSIONS = {'.json', '.properties', '.js', '.txt', '.html', '.yaml', '.yml', '.ini', '.cfg', '.conf'}
+
+
 def get_tree_dir(scan):
-    dir = DECOMPILE_PATH
-    for dirpath, dirs, files in os.walk(dir): 
-        for filename in files:
-            fname = os.path.join(dirpath, filename)
-            extension = os.path.splitext(fname)[1]
-            if (extension == '.db' or extension == '.sqlite3' or extension =='.sql'):
-                get_info_database(scan, fname)
-            else:
-                if (extension == '.java' or  extension == '.kt' or extension == '.xml'):
-                    try:
-                        prev_line = ''
-                        i = 0
-                        f = open(fname, mode="r", encoding="utf-8")
-                        content = f.read()
-                        f.close()
-                        find_patterns(i + 1, prev_line, content, fname, dir, scan)
-                    except Exception as e:
-                        logger.error('ERROR {} {}'.format(e, fname))
-                    if (filename == 'AndroidManifest.xml'):
-                        get_info_file(scan, fname, dir)
-                else:
-                    get_info_file(scan, fname, dir)
+    directory = DECOMPILE_PATH
+    compiled_patterns, errors = load_patterns()
+    # Source-only API rules are meaningless in packaged configuration or text assets.
+    secret_patterns = [(rule, pattern) for rule, pattern in compiled_patterns
+                       if rule.pk in (12, 13, 15) or 100 <= rule.pk <= 133
+                       or rule.default_name == 'Embedded private-key envelope']
+    asset_limit = getattr(settings, 'DETECTION_MAX_ASSET_BYTES', 2 * 1024 * 1024)
+    for dirpath, dirs, files in os.walk(directory):
+        dirs.sort()
+        for filename in sorted(files):
+            name = os.path.join(dirpath, filename)
+            extension = os.path.splitext(name)[1].lower()
+            if extension in {'.db', '.sqlite3', '.sql'}:
+                get_info_database(scan, name)
+                continue
+            source = extension in {'.java', '.kt', '.xml'}
+            asset = extension in ASSET_TEXT_EXTENSIONS
+            if source or asset:
+                try:
+                    if source:
+                        with open(name, encoding='utf-8') as file:
+                            content = file.read()
+                    else:
+                        with open(name, 'rb') as file:
+                            data = file.read(asset_limit + 1)
+                        if len(data) > asset_limit or b'\0' in data:
+                            raise ValueError('text asset exceeds size limit or contains binary data')
+                        content = data.decode('utf-8')
+                    rules = compiled_patterns if source else secret_patterns
+                    errors += find_patterns(1, '', content, name, directory, scan, rules)
+                except (OSError, UnicodeError, ValueError):
+                    errors += 1
+                    logger.exception('Could not analyze text file %s', name)
+            if not source or filename == 'AndroidManifest.xml':
+                get_info_file(scan, name, directory)
+    return errors
+
+
+def load_patterns():
+    """Compile one ordered rule snapshot and isolate invalid administrator rules."""
+    compiled = []
+    errors = 0
+    for rule in Pattern.objects.filter(active=True).select_related('default_cwe', 'default_risk').order_by('pk'):
+        try:
+            compiled.append((rule, re.compile(rule.pattern, re.MULTILINE)))
+        except re.error:
+            errors += 1
+            logger.error('Skipping invalid detection rule %s', rule.pk)
+    return compiled, errors
+
 
 def get_position(match):
-    span = match.span()
-    if span[0] == 0:
-        span = list(span)
-        span[0] = 1
-    return tuple(span)
+    return match.span()
+
 
 def get_match_lines(content, position):
-    lines = ''
-    c = 0
-    end = False
-    beginline = 0
-    for i, line in enumerate(content.split('\n'), 1):
-        c += len(line) + 1
-        if c >= position[0] and c >= position[1] and not end: # only one line
-            return (i, line)
-        elif c >= position[0] and not end:
-            # multiple lines
-            beginline = i
-            if (c >= position[1]):
-                end = True
-            lines += line + '\n'
-        if c >= position[1] and end:
-            # endline
-            return (beginline, lines)
+    start, end = position
+    first = content.rfind('\n', 0, start) + 1
+    last = content.find('\n', max(start, end - 1))
+    if last == -1:
+        last = len(content)
+    return content.count('\n', 0, start) + 1, content[first:last]
 
-def find_patterns(i, prev_line, line, name, dir, scan):
-    patterns = Pattern.objects.filter(active=True)
-    url = ''
-    m = ''
-    for p in patterns:
-        pattern = re.compile(p.pattern, re.MULTILINE)
+
+def find_patterns(i, prev_line, line, name, dir, scan, compiled_patterns=None):
+    errors = 0
+    if compiled_patterns is None:
+        compiled_patterns, errors = load_patterns()
+    for p, pattern in compiled_patterns:
         try:
             for match in pattern.finditer(line):
                 if match.group():
                     type = ''
+                    url = None
+                    m = None
                     match_str = match.group()
                     if (p.id == 8):
                         type = 'IP'
                     elif (p.id == 9):
                         type = 'URL'
                         try:
-                            if "schemas.android.com" in line:
-                                break
                             url = urllib.parse.urlsplit(match_str)
-                            if (settings.MALWARE_ENABLED):
-                                m = Malware.objects.get(url__icontains=url.netloc)
-                        except Exception as e:
-                            logger.error("not found " + match_str)
+                            host = url.hostname
+                        except ValueError:
+                            continue
+                        if host == 'schemas.android.com':
+                            continue
+                        if settings.MALWARE_ENABLED and host:
+                            for candidate in Malware.objects.filter(url__icontains=host):
+                                try:
+                                    candidate_host = urllib.parse.urlsplit(
+                                        candidate.url if '://' in candidate.url else '//' + candidate.url
+                                    ).hostname
+                                except ValueError:
+                                    continue
+                                if candidate_host == host:
+                                    m = candidate
+                                    break
                     elif (p.id == 10):
                         type = 'email'
                     elif (p.id == 11):
@@ -452,11 +482,15 @@ def find_patterns(i, prev_line, line, name, dir, scan):
                         try:
                             int(match_str, 16)
                             type = 'hex'
-                        except Exception as e:
-                            break
+                        except ValueError:
+                            continue
                     elif (p.id == 22):
-                        if (base64.b64encode(base64.b64decode(match_str)) != match_str):
-                            break
+                        try:
+                            decoded = base64.b64decode(match_str, validate=True)
+                            if base64.b64encode(decoded).decode('ascii') != match_str:
+                                continue
+                        except (ValueError, Base64Error):
+                            continue
                         type = 'base64'
 
                     match_lines = get_match_lines(line, get_position(match))
@@ -488,15 +522,17 @@ def find_patterns(i, prev_line, line, name, dir, scan):
                     if (type != ''):
                         s = String(type = type, value = match_str, scan = scan, finding = finding)
                         s.save()
-                        if (type == 'URL'):
+                        if type == 'URL' and url.hostname:
                             if (m):
-                                u = Domain(scan = scan, domain = url.netloc, finding = finding, malware = m)
+                                u = Domain(scan = scan, domain = url.hostname, finding = finding, malware = m)
                             else:
-                                u = Domain(scan = scan, domain = url.netloc, finding = finding)
+                                u = Domain(scan = scan, domain = url.hostname, finding = finding)
                             u.save()
-        except Exception as e:
-            logger.error(e)
-         
+        except Exception:
+            errors += 1
+            logger.exception('Detection rule %s failed for %s', p.pk, name)
+    return errors
+
 def get_lines(finding='', path=''):
     formatter = HtmlFormatter(linenos=False, cssclass="source")
     if (finding):
