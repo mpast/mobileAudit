@@ -31,10 +31,12 @@ jobs:
       with:
         image: mpast/mobile_audit:latest
         args: --file=Dockerfile
-    - name: Remove invalid optional Snyk SARIF fixes
+    - name: Normalize optional Snyk SARIF metadata
       run: |
         python3 - <<'PY'
         import json
+        import math
+        import re
         from pathlib import Path
 
         report = Path("snyk.sarif")
@@ -43,7 +45,30 @@ jobs:
 
         sarif = json.loads(report.read_text())
         removed = 0
+        removed_severities = 0
         for run in sarif.get("runs", []):
+            tool = run.get("tool", {})
+            for component in [tool.get("driver", {}), *tool.get("extensions", [])]:
+                for rule in component.get("rules", []):
+                    properties = rule.get("properties", {})
+                    if "security-severity" not in properties:
+                        continue
+                    value = properties["security-severity"]
+                    valid_type = type(value) in (str, int, float)
+                    if isinstance(value, str):
+                        valid_type = re.fullmatch(
+                            r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?",
+                            value,
+                        ) is not None
+                    try:
+                        score = float(value) if valid_type else math.nan
+                    except (ValueError, OverflowError):
+                        score = math.nan
+                    if not math.isfinite(score) or not 0 <= score <= 10:
+                        del properties["security-severity"]
+                        removed_severities += 1
+                    elif not isinstance(value, str):
+                        properties["security-severity"] = str(value)
             for result in run.get("results", []):
                 if "fixes" not in result:
                     continue
@@ -63,6 +88,7 @@ jobs:
 
         Path("snyk.normalized.sarif").write_text(json.dumps(sarif, indent=2) + "\n")
         print(f"Removed {removed} invalid optional SARIF fixes; findings preserved.")
+        print(f"Removed {removed_severities} invalid optional security severity scores.")
         PY
     - name: Upload result to GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
