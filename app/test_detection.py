@@ -116,6 +116,25 @@ class DetectionTests(TestCase):
         self.assertFalse(Finding.objects.exists())
         self.assertEqual(self.scan.file_set.count(), 2)
 
+    def test_migration_repairs_defaults_but_preserves_customizations(self):
+        migration = import_module('app.migrations.0008_repair_detection_rules')
+        previous = migration.UPDATES[12]['pattern'][0]
+        default = self.rule(12, previous)
+        custom = self.rule(13, 'custom credential expression')
+        custom_http = self.rule(19, 'custom TLS check')
+        custom_http.default_severity = 'HI'
+        custom_http.save()
+        migration.repair_rules(apps, SimpleNamespace(connection=connection))
+        default.refresh_from_db()
+        custom.refresh_from_db()
+        self.assertRegex('username = "alice"', default.pattern)
+        self.assertEqual(custom.pattern, 'custom credential expression')
+        custom_http.refresh_from_db()
+        self.assertEqual(custom_http.default_severity, 'HI')
+        self.assertEqual(Pattern.objects.filter(default_name='Embedded private-key envelope').count(), 1)
+        migration.repair_rules(apps, SimpleNamespace(connection=connection))
+        self.assertEqual(Pattern.objects.filter(default_name='Embedded private-key envelope').count(), 1)
+
     def test_new_private_key_rule_is_scanned_in_assets_with_database_assigned_id(self):
         rule = self.rule(1000, r'-----BEGIN (?:ENCRYPTED |OPENSSH )?PRIVATE KEY-----')
         rule.default_name = 'Embedded private-key envelope'
@@ -125,3 +144,72 @@ class DetectionTests(TestCase):
             with patch.object(analysis, 'DECOMPILE_PATH', directory):
                 self.assertEqual(analysis.get_tree_dir(self.scan), 0)
         self.assertEqual(Finding.objects.get().type_id, rule.pk)
+
+
+
+class ShippedRuleTests(SimpleTestCase):
+    def setUp(self):
+        fixture = Path(__file__).parent / 'fixtures' / 'data.json'
+        self.rules = {item['pk']: item['fields']['pattern']
+                      for item in json.loads(fixture.read_text()) if item['model'] == 'app.pattern'}
+
+    def test_all_shipped_patterns_compile(self):
+        for pk, expression in self.rules.items():
+            with self.subTest(rule=pk):
+                re.compile(expression, re.MULTILINE)
+
+    def test_repaired_patterns_match_realistic_examples(self):
+        cases = {
+            3: ('getReadableDatabase()', 'readDatabase()'),
+            4: ('getNetworkInterfaces()', 'getNetwork()'),
+            10: ('audit.user@example.com', 'audit.user.example.com'),
+            12: ('username = "alice"', 'username = account.name'),
+            13: ('password = "private-value"', 'password = credentials.get()'),
+            15: ('jdbc://alice:private-value@database', 'jdbc://database'),
+            116: ('"type": "service_account", "private_key": "-----BEGIN PRIVATE KEY-----\\nabc"',
+                  '"type": "service_account", "client_email": "public@example.com"'),
+        }
+        for pk, (positive, negative) in cases.items():
+            with self.subTest(rule=pk):
+                self.assertRegex(positive, self.rules[pk])
+                self.assertNotRegex(negative, self.rules[pk])
+
+    def test_pinning_indicator_does_not_claim_generic_tls_api_is_secure(self):
+        for value in ('TrustManager', 'HostnameVerifier', 'onReceivedSslError'):
+            with self.subTest(value=value):
+                self.assertNotRegex(value, self.rules[205])
+
+    def test_private_key_envelopes_exclude_public_keys_and_existing_rsa_rule(self):
+        for value in ('PRIVATE KEY', 'ENCRYPTED PRIVATE KEY', 'OPENSSH PRIVATE KEY'):
+            with self.subTest(value=value):
+                self.assertRegex('-----BEGIN ' + value + '-----', self.rules[133])
+        for value in ('PUBLIC KEY', 'RSA PUBLIC KEY', 'RSA PRIVATE KEY'):
+            with self.subTest(value=value):
+                self.assertNotRegex('-----BEGIN ' + value + '-----', self.rules[133])
+
+    def test_email_rule_bounds_lengths_and_rejects_long_non_email_input(self):
+        expression = self.rules[10]
+        self.assertRegex('a' * 64 + '@example.com', expression)
+        self.assertNotRegex('a' * 65 + '@example.com', expression)
+        self.assertNotRegex('a@' + 'label.' * 50 + 'example.com', expression)
+        # Isolate pathological matching so a regression cannot hang the suite.
+        result = subprocess.run(
+            [sys.executable, '-c',
+             'import re, sys; sys.exit(bool(re.search(sys.argv[1], sys.stdin.read())))',
+             expression],
+            input='a.' * 64000, text=True, capture_output=True, timeout=5,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_email_rule_accepts_sentence_punctuation_without_truncating_domains(self):
+        expression = re.compile(self.rules[10])
+        for text in ('Contact support@example.com.', 'Contact support@example.com,',
+                     '(support@example.com)', 'support@example.com; contact us'):
+            with self.subTest(text=text):
+                self.assertEqual(expression.search(text).group(), 'support@example.com')
+        maximum_domain = '.'.join(['a' * 63] * 3 + ['a' * 61])
+        self.assertEqual(len(maximum_domain), 253)
+        self.assertEqual(expression.search('a@' + maximum_domain + '.').group(),
+                         'a@' + maximum_domain)
+        self.assertIsNone(expression.search('a@' + maximum_domain + 'a.'))
+        self.assertIsNone(expression.search('a@' + 'a' * 64 + '.com.'))
