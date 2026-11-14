@@ -394,10 +394,15 @@ def get_tree_dir(scan):
                         with open(name, 'rb') as file:
                             data = file.read(asset_limit + 1)
                         if len(data) > asset_limit or b'\0' in data:
-                            raise ValueError('text asset exceeds size limit or contains binary data')
-                        content = data.decode('utf-8')
-                    rules = compiled_patterns if source else secret_patterns
-                    errors += find_patterns(1, '', content, name, directory, scan, rules)
+                            errors += 1
+                            reason = 'size limit exceeded' if len(data) > asset_limit else 'binary data'
+                            logger.debug('Skipping text analysis of asset %s: %s', name, reason)
+                            content = None
+                        else:
+                            content = data.decode('utf-8')
+                    if content is not None:
+                        rules = compiled_patterns if source else secret_patterns
+                        errors += find_patterns(1, '', content, name, directory, scan, rules)
                 except (OSError, UnicodeError, ValueError):
                     errors += 1
                     logger.exception('Could not analyze text file %s', name)

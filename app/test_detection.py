@@ -111,10 +111,34 @@ class DetectionTests(TestCase):
         with tempfile.TemporaryDirectory() as directory:
             Path(directory, 'large.txt').write_text('secret' * 10)
             Path(directory, 'binary.txt').write_bytes(b'\0secret')
-            with patch.object(analysis, 'DECOMPILE_PATH', directory):
+            with patch.object(analysis, 'DECOMPILE_PATH', directory), patch.object(analysis, 'logger') as logger:
                 self.assertEqual(analysis.get_tree_dir(self.scan), 2)
+            logger.exception.assert_not_called()
+            self.assertEqual(logger.debug.call_count, 2)
         self.assertFalse(Finding.objects.exists())
         self.assertEqual(self.scan.file_set.count(), 2)
+
+    @override_settings(DETECTION_MAX_ASSET_BYTES=8)
+    def test_asset_at_size_limit_is_scanned(self):
+        self.rule(13, 'secret')
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, 'config.txt').write_bytes(b'secret!!')
+            with patch.object(analysis, 'DECOMPILE_PATH', directory):
+                self.assertEqual(analysis.get_tree_dir(self.scan), 0)
+        self.assertEqual(Finding.objects.get().type_id, 13)
+        self.assertEqual(self.scan.file_set.count(), 1)
+
+    def test_unreadable_asset_still_reports_analysis_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            name = str(Path(directory, 'config.txt'))
+            Path(name).write_text('secret')
+            with patch.object(analysis, 'DECOMPILE_PATH', directory), \
+                    patch('builtins.open', side_effect=OSError('Permission denied')), \
+                    patch.object(analysis, 'get_info_file') as inventory, \
+                    patch.object(analysis, 'logger') as logger:
+                self.assertEqual(analysis.get_tree_dir(self.scan), 1)
+            logger.exception.assert_called_once_with('Could not analyze text file %s', name)
+            inventory.assert_called_once_with(self.scan, name, directory)
 
     def test_migration_repairs_defaults_but_preserves_customizations(self):
         migration = import_module('app.migrations.0008_repair_detection_rules')
