@@ -187,6 +187,13 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND','db+sqlite:///rabbitmq/results.sqlite')
+CELERY_CONTROL_QUEUE_EXCLUSIVE = True
+CELERY_EVENT_QUEUE_EXCLUSIVE = True
+# Quorum queues use per-consumer QoS and require publisher confirms.
+CELERY_TASK_DEFAULT_QUEUE_TYPE = 'quorum'
+CELERY_TASK_CREATE_MISSING_QUEUE_TYPE = 'quorum'
+CELERY_WORKER_DETECT_QUORUM_QUEUES = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {'confirm_publish': True}
 
 LOGGING = {
     'version': 1,
